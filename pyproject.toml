@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "rp-ml-workflow-logger"
+version = "0.1.0"
+description = ""
+authors = ["Parth <parthpisat7@gmail.com>"]
+readme = "README.md"
+packages = [{include = "rp_ml_workflow_logger", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pandas = "^2.2.2"
+networkx = "^3.3"
+pymongo = "^4.8.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
