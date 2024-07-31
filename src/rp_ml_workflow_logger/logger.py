@@ -38,11 +38,11 @@ class MLWorkFlowLogger:
 
     
     def log_params(self, params):
-        self.log_data('params.json', params)
+        self._log_data('params.json', params)
 
     
     def log_metrics(self, metrics):
-        self.log_metrics('metrics.json', metrics)
+        self._log_data('metrics.json', metrics)
 
     
     def _log_data(self, filename, data):
@@ -63,8 +63,8 @@ class MLWorkFlowLogger:
     
     def generate_benchmark_df(self, data):
         df = pd.DataFrame(data)
-        df.to_csv(os.path.json(sef.current_run_dir, 'benchmark.csv'),index=False)
-        print(f"Generated benchmark CSV: {os.path.join(sef.current_run_dir, 'benchmark.csv')}")
+        df.to_csv(os.path.join(self.current_run_dir, 'benchmark.csv'),index=False)
+        print(f"Generated benchmark CSV: {os.path.join(self.current_run_dir, 'benchmark.csv')}")
 
 
 # Sample Usage:
@@ -102,10 +102,11 @@ logger.end_run()
 
 
 # Adding Thread Safety
-self.lock = threading.lock()
+#class Thread(self):
+ #   self.lock = threading.Lock()
 
 # Wrap critical sections with lock
-with self.lock:
+#with self.lock:
 
     # Critical section
-    self._log_data('params.json', params)
+ #   self._log_data('params.json', params)
