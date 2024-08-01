@@ -7,6 +7,14 @@ from datetime import datetime
 from pymongo import MongoClient
 
 class MLWorkFlowLogger:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(MLWorkFlowLogger, cls).__new__(cls)
+            cls._instance.__init__(*args, **kwargs)
+        return cls._instance
+
     def __init__(self, log_dir='logs', graph=None, db_config=None):
         self.log_dir = log_dir                                       # Initialize Logs
         os.makedirs(self.log_dir, exist_ok=True)
@@ -37,12 +45,16 @@ class MLWorkFlowLogger:
         print(f"Started logging for {run_name}")
 
     
-    def log_params(self, params):
+    def log_params(self, params: dict[str, any]) -> None:
+        "Takes parameters like learning-rate, batch-size, epochs and adds them in params.json file"
         self._log_data('params.json', params)
+    print(log_params.__doc__)
 
     
     def log_metrics(self, metrics):
+        "It calculates the performance using metrics like accuracy and loss in and creates a metrics.json file"
         self._log_data('metrics.json', metrics)
+    print(log_metrics.__doc__)
 
     
     def _log_data(self, filename, data):
@@ -99,6 +111,10 @@ logger.generate_benchmark_df(data)
 
 # End the run
 logger.end_run()
+
+# Verify singleton behavior
+another_logger = MLWorkFlowLogger()
+print(logger is another_logger) # Output: True
 
 
 # Adding Thread Safety
