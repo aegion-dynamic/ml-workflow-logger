@@ -11,6 +11,7 @@ python = "^3.12"
 pandas = "^2.2.2"
 networkx = "^3.3"
 pymongo = "^4.8.0"
+pydantic = "^2.8.2"
 
 
 [build-system]
