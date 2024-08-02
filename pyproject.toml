@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "rp-ml-workflow-logger"
+name = "ml-workflow-logger"
 version = "0.1.0"
 description = ""
 authors = ["Parth <parthpisat7@gmail.com>"]
 readme = "README.md"
-packages = [{include = "rp_ml_workflow_logger", from = "src"}]
+packages = [{include = "ml_workflow_logger"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"

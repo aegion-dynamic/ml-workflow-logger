@@ -1,4 +1,4 @@
-from rp_ml_workflow_logger import MLWorkflowLogger
+from ml_workflow_logger.logger import MLWorkflowLogger
 import networkx as nx
 
 # Create a graph to visualize the workflow
