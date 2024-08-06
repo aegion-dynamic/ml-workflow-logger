@@ -8,7 +8,7 @@ from datetime import datetime
 from pymongo import MongoClient
 from pathlib import Path
 
-from ml_workflow_logger.db_config import DBConfig, DBType
+from db_config import DBConfig, DBType, get_mongodb_collection
 
 class MLWorkFlowLogger:
     _instance = None
@@ -27,6 +27,7 @@ class MLWorkFlowLogger:
             graph (Optional[nx.DiGraph], optional): Graph object to map the outputs against. Defaults to None.
             db_config (Optional[DBConfig], optional): Config for the database. Defaults to None.
         """
+
         # Initialize Logs
         self.log_dir = log_dir                                     
         Path(self.log_dir).mkdir(parents=True, exist_ok=True)
@@ -43,6 +44,8 @@ class MLWorkFlowLogger:
         self.client = None
         self.db = None
         self.collection = None
+        self.db_config: DBConfig | None = db_config
+        self.local_mode = db_config is None
 
         if not self.local_mode:
             # Initialize Database
@@ -55,14 +58,13 @@ class MLWorkFlowLogger:
         Raises:
             ValueError: If DBConfig is not provided for non-local mode
         """
-        if self.local_mode is True:
+        if self.local_mode:
             raise ValueError("DBConfig is required for non-local mode")
         
-        if self.db_config  == 'mongodb':
+        if self.db_config.db_type == DBType.MONGO:
             self.client = MongoClient(self.db_config.uri)
             self.db = self.client.get_database(self.db_config.database)
             self.collection = self.db.get_collection(self.db_config.collection)
-
 
     def start_run(self, run_name:str) -> None:
         """Starts a new run and creates a new directory for the run
@@ -77,6 +79,7 @@ class MLWorkFlowLogger:
         self.log_params({})
         self.log_metrics({})
         print(f"Started logging for {run_name}")
+        print(f"Current run directory: {self.current_run_dir}")
 
     
     def log_params(self, params: Dict[str, Any]) -> None:
@@ -86,7 +89,8 @@ class MLWorkFlowLogger:
             params (Dict[str, Any]): Parameters to be logged
         """
         self._log_data('params.json', params)
-
+        print(f"Logged parameters: {params}")
+        
     
     def log_metrics(self, metrics: Dict[str, Any]) -> None:
         """Logs the performance metrics like accuracy and loss in metrics
@@ -96,6 +100,7 @@ class MLWorkFlowLogger:
             metrics ( Dict[str, Any]): Metrics to be logged
         """
         self._log_data('metrics.json', metrics)
+        print(f"Logged metrics: {metrics}")
 
     
     def _log_data(self, filename: str, data: Dict[str, Any]) -> None:
@@ -108,10 +113,12 @@ class MLWorkFlowLogger:
                 raise ValueError("DBConfig is required for non-local mode")
 
             if self.db_config.db_type == DBType.MONGO:
+                self.collection.insert_one(data)
+
                 # TODO: Figure out the naming scheme for the collection
-                # collection = self.db[filename.split('.')[0]]
-                # collection.insert_one(data)
-                # self.db.put_item(Item=data)
+                collection = self.db[filename.split('.')[0]]
+                collection.insert_one(data)
+                self.db.put_item(Item=data)
                 pass
 
 
@@ -130,5 +137,6 @@ class MLWorkFlowLogger:
         df.to_csv(path_or_buf=save_file_path,index=False)
         
         print(f"Generated benchmark CSV: {save_file_path}")
+        print(f"DataFrame shape: {df.shape}")
 
 

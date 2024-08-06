@@ -1,9 +1,19 @@
 # Sample Usage:
 from ml_workflow_logger.logger import MLWorkFlowLogger
+from ml_workflow_logger.logger import DBConfig, DBType
+from datetime import datetime
 
+if __name__ == "__main__":
+    config = DBConfig(
+        uri="mongo"
+        db_type=DBType.MONGO,
+        #host="localhost",
+        port=27017,
+        database="ml_workflows",
+        collection="logs"
+    )
 
-logger = MLWorkFlowLogger()
-
+    logger = MLWorkFlowLogger(db_config=db_config)
 
 # Start a new run
 logger.start_run('experiment_1')
@@ -31,12 +41,15 @@ data = {
 }
 logger.save_dataframe(data)
 
+
 # End the run
 logger.end_run()
 
 # Verify singleton behavior
 another_logger = MLWorkFlowLogger()
-print(logger is another_logger) # Output: True
+
+# Output: True
+print(logger is another_logger) 
 
 
 # Adding Thread Safety

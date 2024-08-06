@@ -27,4 +27,7 @@ logger.visualize_workflow()
 logger.log_metrics({'accuracy': 0.95, 'loss': 0.05})
 
 # Generate local benchmark CSV
-logger.generate_benchmark_csv()
+logger.save_dataframe(data)
+
+# End the run
+logger.end_run()
