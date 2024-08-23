@@ -6,11 +6,11 @@ class Run:
     def __init__(self, run_name: str):
         self.run_id = datetime.now().strftime('%Y%m%d-%H%M%S')
         self.run_name = run_name
-        self.run_dir = None
+        self.run_dir = Path()
         self.params = {}
         self.metrics = {}
 
-    def create_run_dir(self, log_dir: Path):
+    def create_run_dir(self, log_dir: Path) -> None:
         self.run_dir = log_dir / self.run_id
         self.run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -31,3 +31,5 @@ class Run:
         metrics_path = self.run_dir / "metrics.json"
         with metrics_path.open('w') as f:
             json.dump(self.metrics, f)
+
+

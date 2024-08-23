@@ -1,19 +1,20 @@
 # Sample Usage:
 from ml_workflow_logger.logger import MLWorkFlowLogger
-from ml_workflow_logger.logger import DBConfig, DBType
-from datetime import datetime
+from ml_workflow_logger.db_config import DBConfig, DBType
+import pandas as pd
 
 if __name__ == "__main__":
     config = DBConfig(
-        uri="mongo"
         db_type=DBType.MONGO,
-        #host="localhost",
+        host="localhost",
         port=27017,
         database="ml_workflows",
-        collection="logs"
+        collection="logs",
+        username="root",
+        password="password"
     )
 
-    logger = MLWorkFlowLogger(db_config=db_config)
+    logger = MLWorkFlowLogger(db_config=config)
 
 # Start a new run
 logger.start_run('experiment_1')
@@ -39,6 +40,8 @@ data = {
     'accuracy': [0.8, 0.85, 0.9],
     'loss': [0.3, 0.25, 0.2]
 }
+# print(f"data being sent {data}")
+# df = pd.DataFrame(data)
 logger.save_dataframe(data)
 
 

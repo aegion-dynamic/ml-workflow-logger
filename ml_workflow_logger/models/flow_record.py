@@ -15,6 +15,4 @@ class FlowRecord(BaseModel):
    run_ref: Run
 
    def to_dict(self) -> Dict[str, Any]:
-      return self.Dict(by_alias=True, exclude_none=True)
-
-
+      return self.model_dump(by_alias=True, exclude_none=True)
