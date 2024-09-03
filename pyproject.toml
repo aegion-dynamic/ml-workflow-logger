@@ -2,12 +2,12 @@
 name = "ml-workflow-logger"
 version = "0.1.0"
 description = ""
-authors = ["Parth <parthpisat7@gmail.com>"]
+authors = ["Parth <parthpisat7@gmail.com>", "Radhakrishna Sanka <rkrishnasanka@gmail.com>"]
 readme = "README.md"
 packages = [{include = "ml_workflow_logger"}]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.8"
 pandas = "^2.2.2"
 networkx = "^3.3"
 pymongo = "^4.8.0"

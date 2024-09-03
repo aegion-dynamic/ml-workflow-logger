@@ -2,11 +2,13 @@ import json
 from pathlib import Path
 from datetime import datetime
 
+from ml_workflow_logger.models.run_model import RunModel
+
 class Run:
-    def __init__(self, run_name: str):
+    def __init__(self, run_name: str, run_dir: Path = Path("./")) -> None:
         self.run_id = datetime.now().strftime('%Y%m%d-%H%M%S')
         self.run_name = run_name
-        self.run_dir = Path()
+        self.run_dir = run_dir
         self.params = {}
         self.metrics = {}
 
@@ -32,4 +34,11 @@ class Run:
         with metrics_path.open('w') as f:
             json.dump(self.metrics, f)
 
+    def to_model(self) -> RunModel:
+        ret = RunModel(
+            name=self.run_name,
+            params=self.params,
+            metrics=self.metrics
+        )
 
+        return ret

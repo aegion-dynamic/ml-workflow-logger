@@ -1,7 +1,6 @@
 # Sample Usage:
 from ml_workflow_logger.logger import MLWorkFlowLogger
-from ml_workflow_logger.db_config import DBConfig, DBType
-import pandas as pd
+from ml_workflow_logger.drivers.abstract_driver import DBConfig, DBType
 
 config = DBConfig(
     db_type=DBType.MONGO,

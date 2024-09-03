@@ -1,4 +1,4 @@
-from ml_workflow_logger.db_config import DBConfig, get_mongodb_collection
+from ml_workflow_logger.drivers.abstract_driver import DBConfig, get_mongodb_collection
 from ml_workflow_logger.logger import MLWorkFlowLogger
 import networkx as nx
 
