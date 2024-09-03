@@ -2,20 +2,20 @@ import uuid
 from pydantic import BaseModel, Field
 from typing import Dict, Any
 from datetime import datetime
-from ml_workflow_logger.models.flow import Flow
+from ml_workflow_logger.models.flow_model import FlowModel
 
 # def utcnow():
 #    return datetime.now(datetime.utc)
 
 # Stores the metrics, when its starts, ends and allows us to collect all the step data for a particular run
-class Run(BaseModel):
+class RunModel(BaseModel):
    id: str = Field(alias='_id', default_factory=lambda: str(uuid.uuid4()))
-   name: str = ""
+   name: str = Field(default=None)
    start_time: datetime =Field(default_factory=datetime.now)
-   end_time: datetime = None
+   end_time: datetime = Field(default=None)
    params: Dict[str, Any] = Field(default_factory=dict)
    metrics: Dict[str, Any] = Field(default_factory=dict)
-   flow_ref: Flow = None
+   flow_ref: FlowModel = Field(default=None)
 
    def add_param(self, key: str, value: Any):
       self.params[key] = value
@@ -23,7 +23,7 @@ class Run(BaseModel):
    def add_metrics(self, key: str, value: Any):
       self.metrics[key] = value
    
-   def set_flow(self, flow: Flow):
+   def set_flow(self, flow: FlowModel):
       self.flow_ref = flow
 
    def end_run(self):

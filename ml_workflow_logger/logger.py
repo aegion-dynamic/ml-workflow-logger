@@ -1,4 +1,7 @@
+from optparse import Option
 import sys
+
+from ml_workflow_logger.flow import Flow
 sys.path.append('/home/venom983/Desktop/ml-workflow-logger')
 from typing import Any, Dict, Optional
 import pandas as pd
@@ -9,7 +12,7 @@ from pymongo import MongoClient
 from pathlib import Path
 from ml_workflow_logger.local_data_store import LocalDataStore
 from ml_workflow_logger.run import Run
-from ml_workflow_logger.models.flow import Flow
+from ml_workflow_logger.models.flow_model import FlowModel
 from ml_workflow_logger.models.flow_record import FlowRecord
 #from ml_workflow_logger.models.run import Run
 from ml_workflow_logger.db_config import DBConfig, DBType
@@ -53,10 +56,10 @@ class MLWorkFlowLogger:
         #self.local_mode = db_config is None
 
         # Create the run object
-        self._current_run = None
+        self._current_run: Optional[Run] = None
 
         # Create the flow object
-        self._current_flow = None
+        self._current_flow: Optional[Flow] = None
 
         if not self.local_mode:
             # Initialize Database
@@ -81,6 +84,9 @@ class MLWorkFlowLogger:
             raise ValueError("DBConfig is required for non-local mode")
         
         # Now based on what kind of database we use, we can setup the connection correctly
+        if self.db_config is None:
+            raise ValueError("DBConfig is required for non-local mode")
+        
         if self.db_config.db_type == DBType.MONGO:
             self.global_client = MongoClient(self.db_config.uri)
             self.global_db = self.global_client.get_database(self.db_config.database)
@@ -118,7 +124,7 @@ class MLWorkFlowLogger:
                 raise ValueError("No active run. Start a run before adding flows")
             
             # Create the new flow
-            new_flow = Flow(name=flow_name, data=flow_data or [])
+            new_flow = Flow(flow_name=flow_name, data=flow_data or [])
 
             # Add the flow to the current run
             self._current_flow = new_flow
@@ -146,6 +152,9 @@ class MLWorkFlowLogger:
             step_name (str): _description_. Defaults to None
             step_info (str): _description_. Defaults to None
         """
+        if self._current_run is None:
+            raise ValueError("No active run. Start a run before logging steps")
+        
         self._current_flow.add_step(step_name, step_info)
 
         flow_record = FlowRecord(

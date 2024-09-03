@@ -3,18 +3,17 @@ from ml_workflow_logger.logger import MLWorkFlowLogger
 from ml_workflow_logger.db_config import DBConfig, DBType
 import pandas as pd
 
-if __name__ == "__main__":
-    config = DBConfig(
-        db_type=DBType.MONGO,
-        host="localhost",
-        port=27017,
-        database="ml_workflows",
-        collection="logs",
-        username="root",
-        password="password"
-    )
+config = DBConfig(
+    db_type=DBType.MONGO,
+    host="localhost",
+    port=27017,
+    database="ml_workflows",
+    collection="logs",
+    username="root",
+    password="password"
+)
 
-    logger = MLWorkFlowLogger(db_config=config)
+logger = MLWorkFlowLogger(db_config=config)
 
 # Start a new run
 logger.start_run('experiment_1')

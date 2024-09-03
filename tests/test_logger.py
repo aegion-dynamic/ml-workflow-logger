@@ -1,4 +1,5 @@
-from ml_workflow_logger.logger import MLWorkflowLogger
+from ml_workflow_logger.db_config import DBConfig, get_mongodb_collection
+from ml_workflow_logger.logger import MLWorkFlowLogger
 import networkx as nx
 
 # Create a graph to visualize the workflow
@@ -12,7 +13,7 @@ workflow_graph.add_node("evaluation", description="Model Evaluation")
 workflow_graph.add_edges_from([("start", "preprocessing"), ("preprocessing", "training"), ("training", "evaluation")])
 
 # Initialize the logger
-logger = MLWorkflowLogger(log_dir='logs', graph=workflow_graph)
+logger = MLWorkFlowLogger(log_dir='logs', graph=workflow_graph)
 
 # Log some workflow steps
 logger.log_workflow_step('start', {'status': 'completed'})
@@ -31,3 +32,8 @@ logger.save_dataframe(data)
 
 # End the run
 logger.end_run()
+
+
+config = DBConfig(database="your_database_name", collection="your_collection_name")
+collection = get_mongodb_collection(config)
+print(f"Connected to collection: {config.collection}")
