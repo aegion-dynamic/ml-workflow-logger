@@ -1,13 +1,19 @@
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+import pandas as pd
 from enum import Enum
 from typing import Any, Dict
-
+from venv import logger
 from ml_workflow_logger.flow import Flow
 from ml_workflow_logger.models.flow_model import FlowModel, StepModel
 from ml_workflow_logger.models.flow_record_model import FlowRecordModel
 from ml_workflow_logger.models.run_model import RunModel
 from ml_workflow_logger.run import Run
+
+#Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class DBType(Enum):
     MONGO = 'mongo'
@@ -35,33 +41,46 @@ class DBConfig:
             self.computed_connection_uri = f"mongodb://{self.username}:{self.password}@{self.host}:{self.port}/"
         else:
             raise ValueError(f"Unsupported DB type: {self.db_type}")
+        logger.info(f"Initialized DBConfig with DB type {self.db_type} and connection URI")
 
 
 class AbstractDriver(ABC):
+    """Abstract driver class defining the required method for database interaction."""
 
     def __init__(self):
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
     def save_flow(self, flow_data: Flow) -> None:
+        """Saves the flow data"""
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod
     def save_run(self, run_data: Run) -> None:
+        """Saves the run data"""
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod
-    def save_step(self, step_data: StepModel) -> None:
+    def save_step(self, flow_id, step_name, step_info, step_data: StepModel) -> None:
+        """Saves a step within a flow"""
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod
     def save_flow_record(self, flow_record_data: FlowRecordModel) -> None:
+        """Saves the flow record data."""
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod
     def save_params(self, run_id: str, params: Dict[str, Any]) -> None:
+        """Saves the parameters for a given run."""
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod
     def save_metrics(self, run_id: str, metrics: Dict[str, Any]) -> None:
+        """Saves the metircs for a given run."""
         raise NotImplementedError("Subclasses must implement this method")
+    
+    @abstractmethod
+    def save_dataframe(self, run_id: str, df: pd.DataFrame) -> None:
+        """Save a pandas DataFrame associated with a specific run."""
+        pass
