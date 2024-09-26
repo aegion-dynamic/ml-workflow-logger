@@ -4,15 +4,13 @@ from typing import Dict, Any, Optional
 from ml_workflow_logger.models.flow_model import FlowModel
 from ml_workflow_logger.models.run_model import RunModel
 
-
 class FlowRecordModel(BaseModel):
    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias='_id')
-    # TODO: Fill out the other records you need to have to make this a standardized record
-    # TODO: Create a reference to the Flow model, Run model, and any other models you need
-   step_name: str
+   name: str = ""
+   step_name: str = ""
    step_data: Dict[str, Any] = Field(default_factory=dict) # Default to an empty dict if not provided
    flow_ref: Optional[FlowModel] = None
-   run_ref: Optional[RunModel]
+   run_ref: Optional[RunModel] = None
 
    def to_dict(self) -> Dict[str, Any]:
       """Converts the FlowRecordModel to a dictionary using aliases and excluding None fields."""

@@ -1,8 +1,9 @@
-# Sample Usage:
 import threading
 import pandas as pd
 import uuid
 import logging
+import os
+from ml_workflow_logger.drivers import mongodb
 from ml_workflow_logger.logger import MLWorkFlowLogger
 from ml_workflow_logger.drivers.abstract_driver import DBConfig, DBType
 from ml_workflow_logger.drivers.mongodb import MongoDBDriver
@@ -20,14 +21,19 @@ config = DBConfig(
     collection='logs',
     username='root',
     password='password'
+)
 
- )
+# Set the directory for local log storage
+log_dir = 'examples/logs'  # You can change this path as needed
 
-# Initialize the MongoDBDriver directly
+# Initialize the MongoDBDriver
 db_driver = MongoDBDriver(config)
 
-# Create the logger instance
-logger = MLWorkFlowLogger()
+# Ensure the log directory exists
+os.makedirs(log_dir, exist_ok=True)
+
+# Create the logger instance with the MongoDBDriver and log_dir
+logger = MLWorkFlowLogger(db_driver)
 
 # Thread-safe wrapper for the logger
 class ThreadSafeLogger:
@@ -36,14 +42,11 @@ class ThreadSafeLogger:
         self.lock = threading.Lock()
 
     def log_run(self, run_name: str, run_id: str) -> None:
+        # Ensure run_id is a valid UUID
         if run_id is None:
             run_id = str(uuid.uuid4())
         with self.lock:
-            self.logger.log_run(run_name, run_id)
-
-    def log_params(self, run_id: str, params: dict):
-        with self.lock:
-            self.logger.log_params(run_id, params)
+            self.logger.start_new_run(run_name, run_id)
 
     def log_metrics(self, run_id: str, metrics: dict):
         with self.lock:
@@ -54,22 +57,21 @@ class ThreadSafeLogger:
             with self.lock:
                 self.logger.save_dataframe(run_id, df)
         else:
-            logger_error.error("Invalid data format for saving DataFrame. Expected a non-empty dictionary.")
-        
+            logger_error.error("Invalid data format for saving DataFrame. Expected a non-empty DataFrame.")
+
+    def end_run(self, run_id: str):
+        with self.lock:
+            self.logger.end_run(run_id)
 
 # Initialize the thread-safe logger
 thread_safe_logger = ThreadSafeLogger(logger)
 
 # Start a new run
 run_name = 'experiment_1'
-run_id = str(uuid.uuid4())
+run_id = str(uuid.uuid4())  # Use UUID for unique run identification
 
 # Log a run using the thread-safe logger
 thread_safe_logger.log_run(run_name, run_id)
-
-# Log parameters
-params = {'learning_rate': 0.01, 'batch_size': 32, 'num_epochs': 10}
-thread_safe_logger.log_params(run_id, params)
 
 # Log metrics
 metrics = {'accuracy': 0.95, 'loss': 0.05}
@@ -89,7 +91,7 @@ df = pd.DataFrame(data)
 thread_safe_logger.save_dataframe(run_id, df)
 
 # End the run
-logger.end_run(run_id)
+thread_safe_logger.end_run(run_id)
 
 # Verify that the logger works as a singleton
 another_logger = MLWorkFlowLogger()

@@ -7,19 +7,37 @@ from ml_workflow_logger.models.flow_model import FlowModel
 
 # Stores the metrics, when it starts, ends, and collects all the step data for a particular run
 class RunModel(BaseModel):
-    id: str = Field(alias='_id', default_factory=lambda: str(uuid.uuid4()))
+    run_id: str = Field(alias='_id', default_factory=lambda: str(uuid.uuid4()))
     name: Optional[str] = Field(default=None)
     start_time: datetime = Field(default_factory=datetime.now)
     end_time: Optional[datetime] = Field(default=None)
-    params: Dict[str, Any] = Field(default_factory=dict)
     metrics: Dict[str, Any] = Field(default_factory=dict)
     flow_ref: Optional[FlowModel] = Field(default=None)
+    status: str = Field(default="created")
 
     @field_validator('end_time', mode='before')
     def validate_end_time(cls, end_time: Optional[datetime], info: ValidationInfo) -> Optional[datetime]:
         if end_time and end_time < info.data['start_time']:
             raise ValueError("end_time cannot be earlier than start_time.")
         return end_time
+    
+    @field_validator('status')
+    def validate_status(cls, status: str) -> Any:
+        """Ensure that the provided status is valid.
+
+        Args:
+            status (str): _description_
+
+        Raises:
+            ValueError: _description_
+
+        Returns:
+            Any: _description_
+        """
+        valid_statuses = {"created", "running", "completed", "failed"}
+        if status not in valid_statuses:
+            raise ValueError(f"Invalid status '{status}'. Valid statuses are: {valid_statuses}")
+        return status
 
     @field_validator('name', mode='before')
     def validate_name(cls, name: Optional[str]) -> Optional[str]:
@@ -41,5 +59,6 @@ class RunModel(BaseModel):
     def complete_run(self, end_time: Optional[datetime] = None) -> None:
         """Marks the run as complete, setting the end_time."""
         self.end_time = end_time or datetime.now()
+        self.status = "completed"
 
     # TODO: Implement saving all the run related objects and the corresponding flow

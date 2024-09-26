@@ -6,9 +6,7 @@ from enum import Enum
 from typing import Any, Dict
 from venv import logger
 from ml_workflow_logger.flow import Flow
-from ml_workflow_logger.models.flow_model import FlowModel, StepModel
 from ml_workflow_logger.models.flow_record_model import FlowRecordModel
-from ml_workflow_logger.models.run_model import RunModel
 from ml_workflow_logger.run import Run
 
 #Set up logging
@@ -51,33 +49,32 @@ class AbstractDriver(ABC):
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
-    def save_flow(self, flow_data: Flow) -> None:
+    def save_flow(self, flow_object: Flow) -> None:
         """Saves the flow data"""
         raise NotImplementedError("Subclasses must implement this method")
     
-    @abstractmethod
-    def save_run(self, run_data: Run) -> None:
-        """Saves the run data"""
+    def add_step(self, flow_id, step_name: str, step_data: Dict[str, Any] = {}) -> None:
+        """Add the step"""
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod
-    def save_step(self, flow_id, step_name, step_info, step_data: StepModel) -> None:
+    def save_step(self, step_name, step_data: Dict[str, Any]) -> None:
         """Saves a step within a flow"""
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod
-    def save_flow_record(self, flow_record_data: FlowRecordModel) -> None:
-        """Saves the flow record data."""
+    def save_new_run(self, run_object: Run) -> None:
+        """Saves the run data"""
         raise NotImplementedError("Subclasses must implement this method")
-    
-    @abstractmethod
-    def save_params(self, run_id: str, params: Dict[str, Any]) -> None:
-        """Saves the parameters for a given run."""
-        raise NotImplementedError("Subclasses must implement this method")
-    
+
     @abstractmethod
     def save_metrics(self, run_id: str, metrics: Dict[str, Any]) -> None:
         """Saves the metircs for a given run."""
+        raise NotImplementedError("Subclasses must implement this method")
+        
+    @abstractmethod
+    def save_flow_record(self, run_id:str, step_name:str, step_data: Dict[str, Any]) -> None:
+        """Saves the flow record data."""
         raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod

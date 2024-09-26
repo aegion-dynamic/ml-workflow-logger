@@ -1,10 +1,8 @@
 import logging
 from typing import Any, Dict
 from pymongo import MongoClient
-from ml_workflow_logger.drivers.abstract_driver import AbstractDriver
-from ml_workflow_logger.drivers.abstract_driver import DBConfig
-from ml_workflow_logger.flow import Flow
-from ml_workflow_logger.models.flow_model import FlowModel, StepModel
+from ml_workflow_logger.drivers.abstract_driver import AbstractDriver, DBConfig
+from ml_workflow_logger.flow import Flow, Step
 from ml_workflow_logger.models.flow_record_model import FlowRecordModel
 from ml_workflow_logger.models.run_model import RunModel
 import pandas as pd
@@ -27,13 +25,19 @@ class MongoDBDriver(AbstractDriver):
     """MongoDB Driver implementation of AbstractDriver."""
 
     def __init__(self, db_config: DBConfig) -> None:
-        """Initialize MongoDB client and database."""
+        """Initialize MongoDB client and database.
+
+        Args:
+            db_config (DBConfig): Configure the databse
+        """
+        self.steps: Dict[str, Step]
+
         try:
             self._client = _create_mongodb_client(db_config)
             self._db = self._client[db_config.database]
 
             # Check if all the required collections are present
-            collections_to_check = ['flow_models', 'run_models', 'flowrecord_models', 'step_models', 'dataframes']
+            collections_to_check = ['flow_model', 'run_models', 'flowrecord_models', 'step_models', 'dataframes']
             for collection in collections_to_check:
                 if collection not in self._db.list_collection_names():
                     self._db.create_collection(collection)
@@ -58,50 +62,52 @@ class MongoDBDriver(AbstractDriver):
             return False
         return True
     
-    def save_flow(self, flow_data: Flow) -> None:
+    def save_flow(self, flow_object: Flow) -> None:
         # Save the flow data to the flowmodels collection
         collection = self._db['flow_models']
-        data = self._convert_to_dict(flow_data)
-        if self._validate_data(data):     
-            try:
-                collection.insert_one(data)
-                logger.info("Flow data saved successfully.")
-            except Exception as e:
-                logger.error(f"Error saving flow data: {e}")
-    
-    def save_run(self, run_data: Run) -> None:
+        data = flow_object.to_model()
+
+        try: 
+            collection.insert_one(data)
+            logger.info("Flow data saved successfully.")
+        except Exception as e:
+            logger.error(f"Error saving flow data: {e}")
+
+    def add_step(self, flow_id, step_name: str, step_data: Dict[str, Any] = {}):
+        """Adds a step to the flow data."""
+        
+        # Create a Step object and add it to the flow steps dictionary
+        step = Step(
+            flow_id = flow_id,
+            step_name = step_name,
+            step_data = step_data
+        )
+        self.steps[step_name] = step
+
+    def save_step(self, step_name, step_data: Dict[str, Any]) -> None:
+        if step_name not in self.steps:
+            raise ValueError
+        # Save the step data to the stepmodels collection
+        collection = self._db['step_models']
+        data = self._convert_to_dict(step_data)
+
+        try:             
+            collection.insert_one(data)
+            logger.info("Step data saved successfully.")
+        except Exception as e:
+                logger.error(f"Error saving the step data: {e}")
+
+    def save_new_run(self, run_object: Run) -> None:
         # Save the run data to the runmodels collection
         collection = self._db['run_models']
-        data = self._convert_to_dict(run_data)
+        data = self._convert_to_dict(run_object)
         if self._validate_data(data):
             try:
                 collection.insert_one(data)
                 logger.info("Run data saved successfully.")
             except Exception as e:
                 logger.error(f"Error saving run data: {e}")
-
-    def save_step(self, flow_id, step_name, step_info, step_data: StepModel) -> None:
-        # Save the step data to the stepmodels collection
-        collection = self._db['step_models']
-        data = self._convert_to_dict(step_data)
-        if self._validate_data(data):
-            try:
-                collection.insert_one(data)
-                logger.info("Step data saved successfully.")
-            except Exception as e:
-                logger.error(f"Error saving the step data: {e}")
-
-    def save_flow_record(self, flow_record_data: FlowRecordModel) -> None:
-        # Save the flow record data to the flowrecord_models collection
-        collection = self._db['flowrecord_models']
-        data = self._convert_to_dict(flow_record_data)
-        if self._validate_data(data):
-            try:
-                collection.insert_one(data)
-                logger.info("Flow record data saved successfully.")
-            except Exception as e:
-                logger.error(f"Error saving flow record data: {e}")    
-
+    
     def _update_run_data(self, run_id: str, data: Dict[str, Any], key: str) -> None:
         """Utility method to update run data (params/metrics)."""
         Collection = self._db['run_models']
@@ -112,13 +118,21 @@ class MongoDBDriver(AbstractDriver):
             except Exception as e:
                 logger.error(f"Error updating run {key}: {e}")
 
-    def save_params(self, run_id: str, params: Dict[str, Any]) -> None:
-        # Save the params to the params collection
-        self._update_run_data(run_id, params, 'params')
 
     def save_metrics(self, run_id: str, metrics: Dict[str, Any]) -> None:
         # Save the metrics to the metrics collection
         self._update_run_data(run_id, metrics, 'metrics')
+
+    def save_flow_record(self, run_id:str, step_name:str, step_data) -> None:
+        # Save the flow record data to the flowrecord_models collection
+        collection = self._db['flowrecord_models']
+        data = self._convert_to_dict(step_data)
+        if self._validate_data(data):
+            try:
+                collection.insert_one(data)
+                logger.info("Flow record data saved successfully.")
+            except Exception as e:
+                logger.error(f"Error saving flow record data: {e}")
 
     def save_dataframe(self, run_id: str, df: pd.DataFrame) -> None:
         """Save a pandas DataFrame to MongoDb associated  with a specific run."""

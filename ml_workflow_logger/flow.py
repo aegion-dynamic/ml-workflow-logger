@@ -1,70 +1,73 @@
-# from typing import Any, Dict, Optional
-
-# from ml_workflow_logger.models.flow_model import FlowModel
-
-
-# class Flow:
-#     def __init__(self, flow_name: str, run_id: str, flow_data: Optional[Dict[str, Any]] = None):
-#         self.flow_name = flow_name
-#         self.run_id = run_id
-#         self.flow_data = flow_data or {}
-
-#     def add_step(self, step_name: str, step_info:str, step_data: Dict[str, Any] = {}):
-#         raise NotImplementedError("Subclasses must implement this method")
-
-#     def log_step(self, step_name: str, step_data: Dict[str, Any]):
-#         raise NotImplementedError("Subclasses must implement this method")
-    
-#     def to_model(self) -> FlowModel:
-#         ret = FlowModel(
-#             name=self.flow_name
-#             # TODO - Add All the other fields / steps
-#         )
-
-#         return ret
-
 from typing import Any, Dict, Optional
 from ml_workflow_logger.models.flow_model import FlowModel, StepModel
+from dataclasses import dataclass
+import networkx as nx
+from pydantic import ValidationError
+
+
+@dataclass
+class Step:
+    flow_id: str
+    step_name: str
+    step_data: Dict[str, Any]
+
 
 class Flow:
-    def __init__(self, flow_name: str, run_id: str, flow_data: Optional[Dict[str, Any]] = None):
+    def __init__(self, flow_name: str, run_id: str, flow_data: Dict[str, Any] = {}):
         """Initializes the Flow object with flow name, run ID, and optional flow data."""
-        self.flow_name = flow_name
-        self.run_id = run_id
-        self.flow_data = flow_data or {"steps": []}  # Initialize with steps
+        self.flow_name: str = flow_name
+        self.run_id: str = run_id
+        self.flow_data: Dict[str, Any] = flow_data
+        self.status: Optional[str] = None
+        self.steps: Dict[str, Step] = {}
+        self.dag = nx.DiGraph()
 
-    def add_step(self, step_name: str, step_info: str, step_data: Dict[str, Any] = {}):
-        """Adds a step to the flow data."""
-        # Add a new step to the flow_data['steps']
-        step = {
-            "step_name": step_name,
-            "step_info": step_info,
-            "step_data": step_data
-            
-        }
-        self.flow_data["steps"].append(step)
+    def add_step(self, flow_id: str, step_name: str, step_data: Dict[str, Any] = {}):
+        """Adds a step to the flow."""
+        if step_name in self.steps:
+            raise ValueError(f"Step '{step_name}' already exists in the flow.")
+        
+        # Create a Step object and add it to the flow steps dictionary
+        step = Step(
+            flow_id=flow_id,
+            step_name=step_name,
+            step_data=step_data
+        )
+        self.steps[step_name] = step
+        self.dag.add_node(step_name)  # Add step to the DAG
 
-    def log_step(self, step_name: str, step_data: Dict[str, Any]):
-        """Logs data for an existing step."""
-        # Search for the step in flow_data['steps'] and log the step_data
-        for step in self.flow_data["steps"]:
-            if step["step_name"] == step_name:
-                step["step_data"].update(step_data)
-                break
-        else:
-            raise ValueError(f"Step '{step_name}' not found in the flow.")
+    def save_step(self, step_name: str, step_data: Dict[str, Any]):
+        """Updates data for an existing step."""
+        if step_name not in self.steps:
+            raise ValueError(f"Step '{step_name}' does not exist in the flow")
+        
+        step_to_edit = self.steps[step_name]
+        step_to_edit.step_data.update(step_data)
+
+    def validate(self):
+        """Validates flow data before saving."""
+        if not self.flow_name.strip():
+            raise ValueError("Flow name cannot be empty.")
+        if not self.steps:
+            raise ValueError("At least one step must be added to the flow.")
 
     def to_model(self) -> FlowModel:
         """Converts the Flow object to a FlowModel."""
-        flow_model = FlowModel(
-            name=self.flow_name
-        )
+        try:
+            # Validate the flow before conversion
+            self.validate()
 
-        # Add all steps to the FlowModel
-        for step in self.flow_data["steps"]:
-            flow_model.add_step(
-                step_name=step["step_name"],
-                step_info=step["step_info"]
+            flow_model = FlowModel(
+                name=self.flow_name,
+                status=self.status  # Ensure status is set somewhere before this call
             )
 
-        return flow_model
+            # Add all steps to the FlowModel
+            for step in self.steps.values():
+                flow_model.add_step(
+                    step_name=step.step_name,
+                    step_data=step.step_data
+                )
+            return flow_model
+        except ValidationError as e:
+            raise ValueError(f"Error converting to FlowModel: {e}")
