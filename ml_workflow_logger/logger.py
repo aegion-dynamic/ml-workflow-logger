@@ -8,10 +8,6 @@ from ml_workflow_logger.drivers.mongodb import MongoDBDriver
 from ml_workflow_logger.drivers.abstract_driver import AbstractDriver, DBConfig, DBType
 import pandas as pd
 from pathlib import Path
-#import select
-# from pymongo import MongoClient
-# from ml_workflow_logger.local_data_store import LocalDataStore
-
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -19,19 +15,17 @@ logger = logging.getLogger(__name__)
 
 class MLWorkFlowLogger:
     _instance = None
-    _lock =  threading.Lock()
+    _lock = threading.Lock()
 
-    def __new__(cls) -> Any:
+    def __new__(cls, *args, **kwargs) -> Any:
         """Ensure Singleton instance creation"""
         if cls._instance is None:
-            with cls._lock: # Ensure thread safety
+            with cls._lock:  # Ensure thread safety
                 if cls._instance is None:
                     cls._instance = super(MLWorkFlowLogger, cls).__new__(cls)
-                    cls._instance._initialized = False
         return cls._instance
-    
 
-    def __init__(self, log_dir: Path=Path, db_driver: Optional[AbstractDriver] = None, **kwargs):
+    def __init__(self, log_dir: Path = Path("./"), db_driver: Optional[AbstractDriver] = None, **kwargs):
         """Initialize the ML workflow Logger.
 
         Notes:
@@ -42,6 +36,9 @@ class MLWorkFlowLogger:
             graph (nx.DiGraph): Workflow graph visualization
             db_driver (Optional[AbstractDriver], optional): The Database driver for logging to database, optionally creates a mongodb driver connection to localhost
         """
+        if not getattr(self, '_initialized', False):
+            self._initialized = False
+
         if not self._initialized:
             self.collection = log_dir
             self.db_driver = db_driver or self._setup_default_driver()
@@ -101,7 +98,7 @@ class MLWorkFlowLogger:
         step_object = Step(flow_id, step_name, step_data)
 
         try:
-            self.db_driver.save_step( step_name, step_data) # Pass step details directly
+            self.db_driver.save_step(step_name, step_data)  # Pass step details directly
             logger.info("Step logged successfully.")
         except Exception as e:
             logger.error(f"Failed to log step: {e}")
@@ -164,6 +161,7 @@ class MLWorkFlowLogger:
         """
 
         # TODO - Mark run as complete
+        self._runs[run_id].status = "completed"
         try:
             logger.info(f"Run {run_id} ended successfully.")
         except Exception as e:

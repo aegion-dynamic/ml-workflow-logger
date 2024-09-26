@@ -33,7 +33,7 @@ db_driver = MongoDBDriver(config)
 os.makedirs(log_dir, exist_ok=True)
 
 # Create the logger instance with the MongoDBDriver and log_dir
-logger = MLWorkFlowLogger(db_driver)
+logger = MLWorkFlowLogger(db_driver=db_driver)
 
 # Thread-safe wrapper for the logger
 class ThreadSafeLogger:
