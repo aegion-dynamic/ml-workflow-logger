@@ -36,7 +36,7 @@ Each instance of the algorithm execution is captured by this
 
 # How does this work
 
-Step 1 - Create a new Flow describing how the program is supposed to work (or keep of track of it)
+Step 1 - Create a new Flow describing how the program is supposed to work (or keep track of it)
 
 Step 2 - Start a run for a given flow
 

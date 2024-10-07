@@ -1,11 +1,12 @@
 import json
 from pathlib import Path
 from datetime import datetime
+from pydantic import BaseModel
 from typing import Dict, Any, Optional
 from ml_workflow_logger.models.run_model import RunModel
 from ml_workflow_logger.models.flow_model import FlowModel
 
-class Run:
+class Run(BaseModel):
     def __init__(self, run_name: str, run_id: Optional[str] = None, flow_ref: Optional[FlowModel] = None, run_dir: Path = Path("./")) -> None:
         """Initialize the run with a name, reference to flow, and run directory."""
         self.run_id = run_id or datetime.now().strftime('%Y%m%d-%H%M%S')

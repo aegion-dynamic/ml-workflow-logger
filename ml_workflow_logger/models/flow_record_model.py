@@ -11,6 +11,7 @@ class FlowRecordModel(BaseModel):
    step_data: Dict[str, Any] = Field(default_factory=dict) # Default to an empty dict if not provided
    flow_ref: Optional[FlowModel] = None
    run_ref: Optional[RunModel] = None
+   status: Optional[str] = None
 
    def to_dict(self) -> Dict[str, Any]:
       """Converts the FlowRecordModel to a dictionary using aliases and excluding None fields."""
