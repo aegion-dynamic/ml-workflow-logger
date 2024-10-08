@@ -1,15 +1,24 @@
 import json
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
+
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
-from ml_workflow_logger.models.run_model import RunModel
+
 from ml_workflow_logger.models.flow_model import FlowModel
+from ml_workflow_logger.models.run_model import RunModel
+
 
 class Run(BaseModel):
-    def __init__(self, run_name: str, run_id: Optional[str] = None, flow_ref: Optional[FlowModel] = None, run_dir: Path = Path("./")) -> None:
+    def __init__(
+        self,
+        run_name: str,
+        run_id: Optional[str] = None,
+        flow_ref: Optional[FlowModel] = None,
+        run_dir: Path = Path("./"),
+    ) -> None:
         """Initialize the run with a name, reference to flow, and run directory."""
-        self.run_id = run_id or datetime.now().strftime('%Y%m%d-%H%M%S')
+        self.run_id = run_id or datetime.now().strftime("%Y%m%d-%H%M%S")
         self.run_name = run_name
         self.run_dir = run_dir
         self.metrics: Dict[str, Any] = {}
@@ -32,7 +41,7 @@ class Run(BaseModel):
     def _save_metrics(self):
         """Save metrics to a JSON file."""
         metrics_path = self.run_dir / "metrics.json"
-        with metrics_path.open('w') as f:
+        with metrics_path.open("w") as f:
             json.dump(self.metrics, f)
 
     def end_run(self):
@@ -61,10 +70,10 @@ class Run(BaseModel):
             end_time=self.end_time,
             metrics=self.metrics,
             flow_ref=self.flow_ref,
-            status=self._update_status
+            status=self._update_status,
         )
         return run_model
-    
+
     def save_to_mongo(self, mongo_driver):
         """Save the current run to MongoDB uing the driver."""
         run_model = self.to_model()

@@ -1,6 +1,8 @@
 import uuid
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field, field_validator, ValidationError
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field, ValidationError, field_validator
+
 
 # Class representing each step in the workflow
 class StepModel(BaseModel):
@@ -10,14 +12,15 @@ class StepModel(BaseModel):
     class Config:
         population_by_name = True
 
+
 # Class representing the flow of the ML workflow
 class FlowModel(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias='_id')
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     name: str = ""
     steps: List[StepModel] = []
     status: Optional[str] = None
 
-    @field_validator('name')
+    @field_validator("name")
     def validate_name(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("Flow name cannot be empty")
@@ -41,8 +44,8 @@ class FlowModel(BaseModel):
             "_id": self.id,
             "name": self.name,
             "status": self.status,
-            "steps": [step.model_dump() for step in self.steps]
+            "steps": [step.model_dump() for step in self.steps],
         }
-    
+
     class Config:
         population_by_name = True

@@ -1,14 +1,17 @@
 # test_logger.py
 
-import pytest
-import pandas as pd
 from pathlib import Path
-from ml_workflow_logger.logger import MLWorkFlowLogger
+from unittest.mock import MagicMock, patch
+
+import pandas as pd
+import pytest
+
+from ml_workflow_logger.drivers.abstract_driver import DBConfig, DBType
 from ml_workflow_logger.drivers.mongodb import MongoDBDriver
 from ml_workflow_logger.flow import Flow, Step
+from ml_workflow_logger.logger import MLWorkFlowLogger
 from ml_workflow_logger.run import Run
-from ml_workflow_logger.drivers.abstract_driver import DBConfig, DBType
-from unittest.mock import MagicMock, patch
+
 
 @pytest.fixture
 def mock_mongo_driver():
@@ -19,6 +22,7 @@ def mock_mongo_driver():
     mock_driver = MagicMock(spec=MongoDBDriver)
     return mock_driver
 
+
 @pytest.fixture
 def logger_instance(mock_mongo_driver):
     """
@@ -28,6 +32,7 @@ def logger_instance(mock_mongo_driver):
     log_dir = Path("test_logs")  # Use a Path object for log_dir
     logger = MLWorkFlowLogger(db_driver=mock_mongo_driver, log_dir=log_dir)
     return logger, mock_mongo_driver
+
 
 def test_add_new_flow(logger_instance):
     """
@@ -50,6 +55,7 @@ def test_add_new_flow(logger_instance):
     assert saved_flow.run_id == run_id
     assert saved_flow.flow_data == flow_data
 
+
 def test_add_new_step(logger_instance):
     """
     Test adding a new step to MLWorkFlowLogger.
@@ -66,6 +72,7 @@ def test_add_new_step(logger_instance):
 
     # Assert: Check that driver.save_step was called once with correct arguments
     mock_driver.save_step.assert_called_once_with(step_name, step_data)
+
 
 def test_start_new_run(logger_instance):
     """
@@ -91,6 +98,7 @@ def test_start_new_run(logger_instance):
     assert result_run_id == run_id
     assert run_id in logger._runs  # Assuming _runs is accessible
 
+
 def test_log_metrics(logger_instance):
     """
     Test logging metrics in MLWorkFlowLogger.
@@ -109,6 +117,7 @@ def test_log_metrics(logger_instance):
     # Optionally, check internal state if accessible
     # assert logger._runs[run_id].metrics == metrics
 
+
 def test_save_flow_record(logger_instance):
     """
     Test saving a flow record in MLWorkFlowLogger.
@@ -125,6 +134,7 @@ def test_save_flow_record(logger_instance):
     # Assert: Check that driver.save_flow_record was called once with correct arguments
     mock_driver.save_flow_record.assert_called_once_with(run_id, step_name, step_data)
 
+
 def test_save_dataframe(logger_instance, tmp_path):
     """
     Test saving a dataframe in MLWorkFlowLogger.
@@ -136,7 +146,7 @@ def test_save_dataframe(logger_instance, tmp_path):
     df = pd.DataFrame(data)
 
     # Patch the logger's log_dir to use the temporary path provided by pytest
-    with patch.object(logger, 'log_dir', tmp_path):
+    with patch.object(logger, "log_dir", tmp_path):
         # Act
         logger.save_dataframe(run_id, df)
 

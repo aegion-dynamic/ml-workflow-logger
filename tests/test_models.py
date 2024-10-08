@@ -1,10 +1,12 @@
 import pytest
+
 from ml_workflow_logger.models.flow_model import FlowModel
 from ml_workflow_logger.models.flow_record_model import FlowRecordModel
 from ml_workflow_logger.models.run_model import RunModel
 
+
 class TestFlowModel:
-    
+
     def test_flow_model(self) -> None:
         # Test creating a flow model
         flow = FlowModel(name="test_flow", status="created")

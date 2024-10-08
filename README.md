@@ -23,3 +23,18 @@ Flow Record
 logger.log(step_name, data)
 
 ```
+
+```
+Run:
+|- Step Info
+|- Run Info
+```
+
+
+## Process
+
+1. Create a new Flow / Retrieve an existing flow
+2. Add the steps
+3. Create a new run
+4. Log to steps / to run
+5. Save the info
