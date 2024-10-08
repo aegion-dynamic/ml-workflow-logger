@@ -9,32 +9,31 @@ from ml_workflow_logger.models.flow_model import FlowModel, StepModel
 
 @dataclass
 class Step:
-    flow_id: str
+    flow_name: str
     step_name: str
     step_data: Dict[str, Any]
 
 
 class Flow:
-    def __init__(self, flow_name: str, run_id: str, flow_data: Dict[str, Any] = {}):
+    def __init__(self, flow_name: str, flow_data: Dict[str, Any] = {}):
         """Initializes the Flow object with flow name, run ID, and optional flow data."""
         self.flow_name: str = flow_name
-        self.run_id: str = run_id
         self.flow_data: Dict[str, Any] = flow_data
         self.status: Optional[str] = None
         self.steps: Dict[str, Step] = {}
         self.dag = nx.DiGraph()
 
-    def add_step(self, flow_id: str, step_name: str, step_data: Dict[str, Any] = {}):
+    def add_step(self, step_name: str, step_data: Dict[str, Any] = {}):
         """Adds a step to the flow."""
         if step_name in self.steps:
             raise ValueError(f"Step '{step_name}' already exists in the flow.")
 
         # Create a Step object and add it to the flow steps dictionary
-        step = Step(flow_id=flow_id, step_name=step_name, step_data=step_data)
+        step = Step(flow_name=self.flow_name, step_name=step_name, step_data=step_data)
         self.steps[step_name] = step
         self.dag.add_node(step_name)  # Add step to the DAG
 
-    def save_step(self, step_name: str, step_data: Dict[str, Any]):
+    def update_step(self, step_name: str, step_data: Dict[str, Any]):
         """Updates data for an existing step."""
         if step_name not in self.steps:
             raise ValueError(f"Step '{step_name}' does not exist in the flow")

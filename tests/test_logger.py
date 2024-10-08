@@ -52,7 +52,6 @@ def test_add_new_flow(logger_instance):
     saved_flow = mock_driver.save_flow.call_args[0][0]  # Retrieve the first argument passed
     assert isinstance(saved_flow, Flow)
     assert saved_flow.flow_name == flow_name
-    assert saved_flow.run_id == run_id
     assert saved_flow.flow_data == flow_data
 
 
@@ -81,17 +80,15 @@ def test_start_new_run(logger_instance):
     and that the run_id is correctly returned and stored.
     """
     logger, mock_driver = logger_instance
-    run_name = "test_run"
     run_id = "12345"
 
     # Act
-    result_run_id = logger.start_new_run(run_name, run_id)
+    result_run_id = logger.start_new_run(run_id)
 
     # Assert: Check that driver.save_new_run was called once with a Run instance
     mock_driver.save_new_run.assert_called_once()
     saved_run = mock_driver.save_new_run.call_args[0][0]  # Retrieve the first argument passed
     assert isinstance(saved_run, Run)
-    assert saved_run.run_name == run_name
     assert saved_run.run_id == run_id
 
     # Check that run_id is returned and stored in logger._runs

@@ -21,13 +21,13 @@ class TestFlowModel:
 
     def test_run_model(self) -> None:
         # Test creating a run model
-        run = RunModel(name="test_run", status="pending")  # Ensure status is provided if needed
-        assert run.name == "test_run"
+        run = RunModel(status="pending")  # Ensure status is provided if needed
+        assert run.run_id == "test_run"
         assert run.status == "pending"
 
     def test_run_status_update(self) -> None:
         # Test updating a run model status
-        run = RunModel(name="test_run", status="pending")
+        run = RunModel(status="pending")
         run.status = "running"  # Directly update the status
         assert run.status == "running"
 

@@ -18,7 +18,7 @@ class LocalDataStore:
         with params_path.open("w") as f:
             json.dump(params, f, indent=4)
 
-    def sav_metrics(self, run_id: str, metrics: dict):
+    def save_metrics(self, run_id: str, metrics: dict):
         """Save metrics to a JSON file."""
         metrics_path = self.store_dir / f"{run_id}_metrics.json"
         with metrics_path.open("w") as f:

@@ -3,23 +3,20 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel
 
 from ml_workflow_logger.models.flow_model import FlowModel
 from ml_workflow_logger.models.run_model import RunModel
 
 
-class Run(BaseModel):
+class Run:
     def __init__(
         self,
-        run_name: str,
         run_id: Optional[str] = None,
         flow_ref: Optional[FlowModel] = None,
         run_dir: Path = Path("./"),
     ) -> None:
         """Initialize the run with a name, reference to flow, and run directory."""
         self.run_id = run_id or datetime.now().strftime("%Y%m%d-%H%M%S")
-        self.run_name = run_name
         self.run_dir = run_dir
         self.metrics: Dict[str, Any] = {}
         self.start_time = datetime.now()
@@ -60,12 +57,11 @@ class Run(BaseModel):
         if _update_status not in valid_statuses:
             raise ValueError(f"Invalid status '{_update_status}'. Valid statuses are: {valid_statuses}")
         self.status = _update_status
-        print(f"Run '{self.run_name}' status updated to '{self.status}'.")
+        print(f"Run '{self.run_id}' status updated to '{self.status}'.")
 
     def to_model(self) -> RunModel:
         """Convert the current run to a RunModel."""
         run_model = RunModel(
-            name=self.run_name,
             start_time=self.start_time,
             end_time=self.end_time,
             metrics=self.metrics,

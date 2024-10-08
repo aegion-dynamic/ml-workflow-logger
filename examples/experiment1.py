@@ -49,7 +49,7 @@ class ThreadSafeLogger:
         if run_id is None:
             run_id = str(uuid.uuid4())
         with self.lock:
-            self.logger.start_new_run(run_name, run_id)
+            self.logger.start_new_run(run_name)
 
     def log_metrics(self, run_id: str, metrics: dict):
         with self.lock:

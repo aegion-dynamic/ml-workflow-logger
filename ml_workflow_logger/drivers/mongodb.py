@@ -132,7 +132,7 @@ class MongoDBDriver(AbstractDriver):
             raise ValueError("flow_id must be a valid, non-empty string.")
 
         # Create a Step object and add it to the flow steps dictionary
-        step = Step(flow_id=flow_id, step_name=step_name, step_data=step_data)
+        step = Step(flow_name=flow_id, step_name=step_name, step_data=step_data)
         self.steps[step_name] = step
         logger.debug("Added step '%s' to flow '%s'.", step_name, flow_id)
 

@@ -10,7 +10,6 @@ from ml_workflow_logger.models.flow_model import FlowModel
 # Stores the metrics, when it starts, ends, and collects all the step data for a particular run
 class RunModel(BaseModel):
     run_id: str = Field(alias="_id", default_factory=lambda: str(uuid.uuid4()))
-    name: Optional[str] = Field(default=None)
     start_time: datetime = Field(default_factory=datetime.now)
     end_time: Optional[datetime] = Field(default=None)
     metrics: Dict[str, Any] = Field(default_factory=dict)

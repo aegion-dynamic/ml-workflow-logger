@@ -30,7 +30,7 @@ class MLWorkFlowLogger:
                     cls._instance = super(MLWorkFlowLogger, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, log_dir: Path = Path("./"), db_driver: Optional[AbstractDriver] = None, **kwargs):
+    def __init__(self, log_dir: Path = Path("./"), db_driver: Optional[MongoDBDriver] = None, **kwargs):
         """Initialize the ML workflow Logger.
 
         Notes:
@@ -47,7 +47,8 @@ class MLWorkFlowLogger:
         if not self._initialized:
             self.collection = log_dir
             self.db_driver = db_driver or self._setup_default_driver()
-
+            
+            # These are the in-memory dictionaries to store the runs and flows
             self._runs: Dict[str, Run] = {}
             self._flows: Dict[str, Flow] = {}
 
@@ -74,7 +75,7 @@ class MLWorkFlowLogger:
         )
         return MongoDBDriver(db_config)
 
-    def add_new_flow(self, flow_name: str, run_id: str, flow_data: Dict[str, Any] = {}) -> None:
+    def add_new_flow(self, flow_name: str, flow_data: Dict[str, Any] = {}) -> None:
         """Log flow object, pass to driver for model conversion.
 
         Args:
@@ -83,14 +84,18 @@ class MLWorkFlowLogger:
             flow_data (Dict[str, Any], optional): All the flow data to be stored in the logs. Defaults to {}.
         """
 
-        flow = Flow(flow_name, run_id, flow_data)
+        flow = Flow(flow_name, flow_data)
+
+        # Save the flow in the operating memory
+        self._flows[flow.flow_name] = flow
+
         try:
             self.db_driver.save_flow(flow)
             logger.info("Flow logged successfully.")
         except Exception as e:
             logger.error(f"Failed to log flow: {e}")
 
-    def add_new_step(self, flow_id: str, step_name: str, step_object: Step, step_data: Dict[str, Any] = {}) -> None:
+    def add_new_step(self, flow_name: str, step_name: str, step_data: Dict[str, Any] = {}) -> None:
         """Log step information, pass flow_id, step_name, step_data to the driver.
 
         Args:
@@ -98,17 +103,20 @@ class MLWorkFlowLogger:
             step_name (str): Name of each step in the workflow
             step_data (Dict[str, Any], optional): Data captured in every step. Defaults to {}.
         """
+        
+        # Save the step in the operating memory
+        self._flows[flow_name].add_step(step_name, step_data)
+
         try:
             self.db_driver.save_step(step_name, step_data)  # Pass step details directly
-            logger.info("Step '%s' logged successfully.", step_name, flow_id)
+            logger.info("Step '%s' logged successfully.", step_name, flow_name)
         except Exception as e:
-            logger.error(f"Failed to log step: '{step_name}' under Flow ID '{flow_id}': {e}")
+            logger.error(f"Failed to log step: '{step_name}' under Flow ID '{flow_name}': {e}")
 
-    def start_new_run(self, run_name: str, run_id: Optional[str]) -> str:
+    def start_new_run(self, run_id: Optional[str]) -> str:
         """Log run object, pass to driver for model conversion.
 
         Args:
-            run_name (str): Run name given to each run created
             run_id (Optional[str]): A unique id created for each run
 
         Returns:
@@ -120,16 +128,16 @@ class MLWorkFlowLogger:
         else:
             logger.debug("Using provided run_id: %s", run_id)
 
-        run_data = Run(run_name, run_id)
+        run_data = Run( run_id)
         with self._lock:
             self._runs[run_id] = run_data
             logger.debug("Added run_id %s' to in-memory runs.", run_id)
 
         try:
             self.db_driver.save_new_run(run_data)
-            logger.info("Run '%s' with Run ID '%s' logged successfully.", run_name, run_id)
+            logger.info("Run ID '%s' logged successfully.", run_id)
         except Exception as e:
-            logger.error(f"Failed to log run '{run_name}' with Run ID '{run_id}': {e}")
+            logger.error(f"Failed to log run '{run_id}' with Run ID '{run_id}': {e}")
             with self._lock:
                 del self._runs[run_id]  # Clean up the in-memory dictionary if DB logging fails
             raise  # Re-raise the exception after cleanup

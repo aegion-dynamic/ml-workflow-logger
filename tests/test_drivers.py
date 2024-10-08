@@ -69,18 +69,18 @@ class TestMongoDBDriver:
     def test_save_new_run_success(self, mock_mongo_driver):
         """Test saving a new run to MongoDB successfully."""
         driver, mock_collections = mock_mongo_driver
-        run = Run(run_name="test_run", run_id="run_1")
+        run = Run(run_id="run_1")
 
         # Act
         driver.save_new_run(run)
 
         # Assert: Check if `insert_one` was called on 'run_models' collection with the correct data
-        mock_collections["run_models"].insert_one.assert_called_once_with(run.model_dump())
+        mock_collections["run_models"].insert_one.assert_called_once_with(run)
 
     def test_save_new_run_duplicate_key(self, mock_mongo_driver):
         """Test saving a new run with a duplicate run_id, expecting a DuplicateKeyError."""
         driver, mock_collections = mock_mongo_driver
-        run = Run(run_name="test_run", run_id="run_1")
+        run = Run(run_id="run_1")
 
         # Configure `insert_one` to raise DuplicateKeyError
         mock_collections["run_models"].insert_one.side_effect = errors.DuplicateKeyError("Duplicate key error")
@@ -92,7 +92,7 @@ class TestMongoDBDriver:
     def test_save_flow_success(self, mock_mongo_driver):
         """Test saving a flow to MongoDB successfully."""
         driver, mock_collections = mock_mongo_driver
-        flow = Flow(flow_name="test_flow", run_id="run_1", flow_data={"key": "value"})
+        flow = Flow(flow_name="test_flow", flow_data={"key": "value"})
 
         # Act
         driver.save_flow(flow)
@@ -103,7 +103,7 @@ class TestMongoDBDriver:
     def test_save_flow_invalid_run_id(self, mock_mongo_driver):
         """Test saving a flow with missing run_id, expecting ValueError."""
         driver, mock_collections = mock_mongo_driver
-        flow = Flow(flow_name="test_flow", run_id="run_id", flow_data={"key": "value"})
+        flow = Flow(flow_name="test_flow", flow_data={"key": "value"})
 
         # Act & Assert
         with pytest.raises(ValueError, match="Invalid data: 'run_id' is missing or None."):
@@ -154,7 +154,7 @@ class TestMongoDBDriver:
 
         # Add the step to the driver's internal steps
         flow_id = "flow_1"
-        step = Step(flow_id=flow_id, step_name=step_name, step_data=step_data)
+        step = Step(flow_name=flow_id, step_name=step_name, step_data=step_data)
         driver.add_step(flow_id, step_name, step)
 
         # Act
@@ -175,7 +175,7 @@ class TestMongoDBDriver:
 
         # Add the step without run_id
         flow_id = "flow_1"
-        step = Step(flow_id=flow_id, step_name=step_name, step_data=step_data)
+        step = Step(flow_name=flow_id, step_name=step_name, step_data=step_data)
         driver.add_step(flow_id, step_name, step)
 
         # Act & Assert
@@ -298,7 +298,7 @@ class TestMongoDBDriver:
 
         # Add the step without run_id
         flow_id = "flow_1"
-        step = Step(flow_id=flow_id, step_name=step_name, step_data=step_data)
+        step = Step(flow_name=flow_id, step_name=step_name, step_data=step_data)
         driver.add_step(flow_id, step_name, step)
 
         # Act & Assert
