@@ -45,3 +45,11 @@ Step 3 - Save run metrics
 Step 4 - Save each step record
 
 Step 5 - End Run + Save as CSV (for local)
+
+
+# Cloud vs non-cloud execution
+
+For local - it will have all flows and runs on memory
+
+For cloud - it will need to map on memory flows and runs to the cloud
+

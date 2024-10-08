@@ -30,7 +30,7 @@ def logger_instance(mock_mongo_driver):
     Returns both the logger instance and the mocked driver for assertions.
     """
     log_dir = Path("test_logs")  # Use a Path object for log_dir
-    logger = MLWorkFlowLogger(db_driver=mock_mongo_driver, log_dir=log_dir)
+    logger = MLWorkFlowLogger(db_driver_config=mock_mongo_driver, log_dir=log_dir)
     return logger, mock_mongo_driver
 
 

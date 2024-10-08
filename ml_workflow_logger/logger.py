@@ -2,7 +2,7 @@ import logging
 import threading
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import pandas as pd
 
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 class MLWorkFlowLogger:
     _instance = None
     _lock = threading.Lock()
+    _is_local_mode = True
 
     def __new__(cls, *args, **kwargs) -> Any:
         """Ensure Singleton instance creation"""
@@ -30,7 +31,7 @@ class MLWorkFlowLogger:
                     cls._instance = super(MLWorkFlowLogger, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, log_dir: Path = Path("./"), db_driver: Optional[MongoDBDriver] = None, **kwargs):
+    def __init__(self, log_dir: Path = Path("./"), db_driver_config: Optional[DBConfig] = None, **kwargs):
         """Initialize the ML workflow Logger.
 
         Notes:
@@ -39,18 +40,27 @@ class MLWorkFlowLogger:
         Args:
             log_dir (str): The directory where logs are stored.
             graph (nx.DiGraph): Workflow graph visualization
-            db_driver (Optional[AbstractDriver], optional): The Database driver for logging to database, optionally creates a mongodb driver connection to localhost
+            db_driver (Optional[MongoDBDriver], optional): The Database driver for logging to database, optionally creates a mongodb driver connection to localhost
         """
         if not getattr(self, "_initialized", False):
             self._initialized = False
 
         if not self._initialized:
-            self.collection = log_dir
-            self.db_driver = db_driver or self._setup_default_driver()
-            
-            # These are the in-memory dictionaries to store the runs and flows
-            self._runs: Dict[str, Run] = {}
-            self._flows: Dict[str, Flow] = {}
+
+            # First check if its local mode or cloud mode
+            if db_driver_config is None:
+                # Local mode setup
+                self.log_dir: Path = log_dir
+
+                # These are the in-memory dictionaries to store the runs and flows
+                self._runs: Dict[str, Run] = {}
+                self._flows: Dict[str, Flow] = {}
+
+            else:
+                # Cloud mode setup
+                self._is_local_mode = False
+                self.db_driver = self._setup_driver(db_driver_config)
+
 
             for key, value in kwargs.items():
                 setattr(self, key, value)
@@ -58,21 +68,14 @@ class MLWorkFlowLogger:
             self._initialized = True
             logger.info("MLWorkflowLogger initialized with driver: %s", type(self.db_driver).__name__)
 
-    def _setup_default_driver(self) -> AbstractDriver:
+
+    def _setup_driver(self, db_config) -> MongoDBDriver:
         """Setup default MongoDB driver if no driver is provided.
 
         Returns:
             AbstractDriver: _description_
         """
-        db_config = DBConfig(
-            database="ml_workflows",
-            collection="logs",
-            db_type=DBType.MONGO,
-            host="localhost",
-            port=27017,
-            username="root",
-            password="password",
-        )
+        # TODO: In the future, we can add support for other database drivers
         return MongoDBDriver(db_config)
 
     def add_new_flow(self, flow_name: str, flow_data: Dict[str, Any] = {}) -> None:
@@ -86,14 +89,16 @@ class MLWorkFlowLogger:
 
         flow = Flow(flow_name, flow_data)
 
-        # Save the flow in the operating memory
-        self._flows[flow.flow_name] = flow
+        if self._is_local_mode:
+            # Save the flow in the operating memory
+            self._flows[flow.flow_name] = flow
+        else:
+            try:
+                self.db_driver.save_flow(flow)
+                logger.info("Flow logged successfully.")
+            except Exception as e:
+                logger.error(f"Failed to log flow: {e}")
 
-        try:
-            self.db_driver.save_flow(flow)
-            logger.info("Flow logged successfully.")
-        except Exception as e:
-            logger.error(f"Failed to log flow: {e}")
 
     def add_new_step(self, flow_name: str, step_name: str, step_data: Dict[str, Any] = {}) -> None:
         """Log step information, pass flow_id, step_name, step_data to the driver.
@@ -103,15 +108,17 @@ class MLWorkFlowLogger:
             step_name (str): Name of each step in the workflow
             step_data (Dict[str, Any], optional): Data captured in every step. Defaults to {}.
         """
-        
-        # Save the step in the operating memory
-        self._flows[flow_name].add_step(step_name, step_data)
 
-        try:
-            self.db_driver.save_step(step_name, step_data)  # Pass step details directly
-            logger.info("Step '%s' logged successfully.", step_name, flow_name)
-        except Exception as e:
-            logger.error(f"Failed to log step: '{step_name}' under Flow ID '{flow_name}': {e}")
+        if self._is_local_mode:
+            # Save the step in the operating memory
+            self._flows[flow_name].add_step(step_name, step_data)
+
+        else:
+            try:
+                self.db_driver.save_step(step_name, step_data)  # Pass step details directly
+                logger.info("Step '%s' logged successfully.", step_name, flow_name)
+            except Exception as e:
+                logger.error(f"Failed to log step: '{step_name}' under Flow ID '{flow_name}': {e}")
 
     def start_new_run(self, run_id: Optional[str]) -> str:
         """Log run object, pass to driver for model conversion.
@@ -128,19 +135,20 @@ class MLWorkFlowLogger:
         else:
             logger.debug("Using provided run_id: %s", run_id)
 
-        run_data = Run( run_id)
-        with self._lock:
-            self._runs[run_id] = run_data
-            logger.debug("Added run_id %s' to in-memory runs.", run_id)
-
-        try:
-            self.db_driver.save_new_run(run_data)
-            logger.info("Run ID '%s' logged successfully.", run_id)
-        except Exception as e:
-            logger.error(f"Failed to log run '{run_id}' with Run ID '{run_id}': {e}")
+        if self._is_local_mode:
+            run_data = Run( run_id)
             with self._lock:
-                del self._runs[run_id]  # Clean up the in-memory dictionary if DB logging fails
-            raise  # Re-raise the exception after cleanup
+                self._runs[run_id] = run_data
+                logger.debug("Added run_id %s' to in-memory runs.", run_id)
+        else:
+            try:
+                self.db_driver.save_new_run(run_data)
+                logger.info("Run ID '%s' logged successfully.", run_id)
+            except Exception as e:
+                logger.error(f"Failed to log run '{run_id}' with Run ID '{run_id}': {e}")
+                with self._lock:
+                    del self._runs[run_id]  # Clean up the in-memory dictionary if DB logging fails
+                raise  # Re-raise the exception after cleanup
 
         return run_id
 
@@ -151,6 +159,7 @@ class MLWorkFlowLogger:
             run_id (str): Run id used to track the metrics
             metrics (Dict[str, Any], optional): All the metrics used to measure the accuracy. Defaults to {}.
         """
+        #TODO: Figure out what to do in the local version of the logger (save to run)
 
         try:
             self.db_driver.save_metrics(run_id, metrics)
@@ -166,6 +175,7 @@ class MLWorkFlowLogger:
             step_name (str): Used to identify appropriate record
             step_data (Dict[str, Any], optional): All the step data used to record step . Defaults to {}.
         """
+        # TODO: Figure out the local version
         try:
             self.db_driver.save_flow_record(run_id, step_name, step_data)
             logger.info("Flow record logged successfully.")

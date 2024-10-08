@@ -8,7 +8,6 @@ from venv import logger
 import pandas as pd
 
 from ml_workflow_logger.flow import Flow
-from ml_workflow_logger.models.flow_record_model import FlowRecordModel
 from ml_workflow_logger.run import Run
 
 # Set up logging
