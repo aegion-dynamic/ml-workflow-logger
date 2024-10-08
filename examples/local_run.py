@@ -61,10 +61,13 @@ logger.add_new_step("algorithm1", "step3")
 logger.add_new_step("algorithm1", "step4")
 logger.add_new_step("algorithm1", "step_end")
 
+print("Flow created successfully")
+
 
 # Create a run for the flow
 
 for i in range(10):
+    print(f"Starting run {i+1}")
     run_id = f"run{i+1}"
     run = logger.start_new_run(run_id)
     # Start the algorithm
