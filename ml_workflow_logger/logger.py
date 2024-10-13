@@ -313,9 +313,4 @@ class MLWorkFlowLogger:
             logger.info(f"Dataframe for run {run_id} saved successfully to {file_path}.")
         except Exception as e:
             logger.error(f"Failed to save DataFrame for run_id {run_id}: {e}")
-        # try:
-        #     # file_path =  self.log_dir / f"{run_id}_data.csv"
-        #     df.to_csv(f"{run_id}_data.csv", index=False)
-        #     logger.info(f"Dataframe for run {run_id} saved successfully.")
-        # except Exception as e:
-        #     logger.error(f"Failed to save DataFrame for run_id {run_id}: {e}")
+
