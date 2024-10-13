@@ -15,14 +15,14 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 
-def _create_mongodb_client(config: DBConfig) -> MongoClient:
+def _create_mongodb_client(db_config: DBConfig) -> MongoClient:
     """Create and return a MongoDB client based on the DB configuration."""
     try:
         client = MongoClient(
-            host=config.computed_connection_uri,
-            username=config.username,
-            password=config.password,
-            port=config.port,
+            host=db_config.computed_connection_uri,
+            username=db_config.username,
+            password=db_config.password,
+            port=db_config.port,
             serverSelectionTimeoutMS=5000,  # 5 seconds timeout
         )
         # Attempt to connect to verify credentials and connection
@@ -47,7 +47,7 @@ def _create_mongodb_client(config: DBConfig) -> MongoClient:
 class MongoDBDriver(AbstractDriver):
     """MongoDB Driver implementation of AbstractDriver."""
 
-    def __init__(self, config: DBConfig) -> None:
+    def __init__(self, db_config: DBConfig) -> None:
         """Initialize MongoDB client and database.
 
         Args:
@@ -56,8 +56,8 @@ class MongoDBDriver(AbstractDriver):
         self.steps: Dict[str, Step] = {}
 
         try:
-            self._client = _create_mongodb_client(config)
-            self._db = self._client[config.database]
+            self._client = _create_mongodb_client(db_config)
+            self._db = self._client[db_config.database]
 
             # Check if all the required collections are present
             collections_to_check = ["flow_model", "run_models", "flowrecord_models", "step_models", "dataframes"]

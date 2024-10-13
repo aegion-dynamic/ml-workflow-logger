@@ -1,7 +1,9 @@
 import logging
+from optparse import Option
 import os
 import threading
 import uuid
+from typing import Any, Dict, Optional
 
 import pandas as pd
 
@@ -26,7 +28,7 @@ config = DBConfig(
 )
 
 # Set the directory for local log storage
-log_dir = "examples/logs"  # You can change this path as needed
+log_dir = "logs"  # You can change this path as needed
 
 # Initialize the MongoDBDriver
 db_driver = MongoDBDriver(config)
@@ -35,7 +37,7 @@ db_driver = MongoDBDriver(config)
 os.makedirs(log_dir, exist_ok=True)
 
 # Create the logger instance with the MongoDBDriver and log_dir
-logger = MLWorkFlowLogger(db_driver_config=db_driver)
+logger = MLWorkFlowLogger(db_driver_config=config)
 
 
 # Thread-safe wrapper for the logger
@@ -44,12 +46,11 @@ class ThreadSafeLogger:
         self.logger = logger
         self.lock = threading.Lock()
 
-    def log_run(self, run_name: str, run_id: str) -> None:
+    def log_run(self, run_name: str, run_id: Optional[str] = None) -> str:
         # Ensure run_id is a valid UUID
-        if run_id is None:
-            run_id = str(uuid.uuid4())
         with self.lock:
-            self.logger.start_new_run(run_name)
+            run_id = self.logger.start_new_run(run_id)
+        return run_id
 
     def log_metrics(self, run_id: str, metrics: dict):
         with self.lock:

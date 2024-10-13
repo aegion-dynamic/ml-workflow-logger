@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Any, Dict, Optional
 
 import networkx as nx
@@ -13,7 +13,10 @@ class Step:
     step_name: str
     step_data: Dict[str, Any]
 
+    def to_dict(self) -> dict:
+        return asdict(self)
 
+@dataclass
 class Flow:
     def __init__(self, flow_name: str, flow_data: Dict[str, Any] = {}):
         """Initializes the Flow object with flow name, run ID, and optional flow data."""
