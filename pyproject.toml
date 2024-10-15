@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "ml-workflow-logger"
+version = "0.1.0"
+description = ""
+authors = [
+    "Parth <parthpisat7@gmail.com>",
+    "Radhakrishna Sanka <rkrishnasanka@gmail.com>",
+]
+readme = "README.md"
+packages = [{ include = "ml_workflow_logger" }]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.2.2"
+networkx = "^3.3"
+pymongo = "^4.8.0"
+pydantic = "^2.8.2"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+black = "^24.10.0"
+isort = "^5.13.2"
+mypy = "^1.11.2"
+pandas-stubs = "^2.2.2.240909"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"
