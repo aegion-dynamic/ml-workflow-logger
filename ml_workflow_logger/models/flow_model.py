@@ -1,7 +1,7 @@
 import uuid
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 # Class representing each step in the workflow

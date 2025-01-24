@@ -95,6 +95,12 @@ class MongoDBDriver(AbstractDriver):
             logger.error("Invalid data: 'run_id' is missing or None.")
             return False
         return True
+    
+    def validate_flow_id(self, flow_id: str) -> bool:
+        collection = self._db["flow_models"]
+        if collection.find_one({"id": flow_id}):
+            return True
+        return False
 
     def save_flow(self, flow_object: Flow) -> None:
         """Save the flow data to the flowmodels collection
@@ -180,6 +186,10 @@ class MongoDBDriver(AbstractDriver):
         if not self._validate_data(data):
             logger.error("Run data validation failed. Run not saved.")
             raise ValueError("Invalid run data. 'run_id' must be present and non-null.")
+        
+        if not self.validate_flow_id(data["flow_ref"]):
+            logger.error("No flow found with flow_id: %s to save run.", data["flow_ref"])
+            raise ValueError("No flow found with the given flow_id.")
 
         try:
             collection.insert_one(data)
@@ -234,7 +244,7 @@ class MongoDBDriver(AbstractDriver):
 
         self._update_run_data(run_id, metrics, "metrics")
 
-    def save_flow_record(self, run_id: str, step_name: str, step_data: Dict[str, Any]) -> None:
+    def save_flow_record(self, run_id: str, flow_id: str, step_name: str, step_data: Dict[str, Any]) -> None:
         """Save a flow record associated with a specific run and step.
 
         Args:
@@ -245,6 +255,10 @@ class MongoDBDriver(AbstractDriver):
         if not run_id:
             logger.error("Invalid run_id provided for saving flow record: None or empty.")
             raise ValueError("run_id must be a valid, non-empty string.")
+        
+        if not flow_id:
+            logger.error("Invalid flow_id provided for saving flow record: None or empty.")
+            raise ValueError("flow_id must be a valid, non-empty string.")
 
         if not step_name:
             logger.error("Invalid step_name provided for saving flow record: None or empty.")
@@ -256,7 +270,12 @@ class MongoDBDriver(AbstractDriver):
             raise ValueError("'run_id' must be present and non-null in step_data.")
 
         collection = self._db["flowrecord_models"]
-        data = step_data
+        data = {
+            "step_name": step_name,
+            "step_data": step_data,
+            "flow_ref": flow_id,
+            "run_ref": run_id,
+        }
 
         try:
             collection.insert_one(data)

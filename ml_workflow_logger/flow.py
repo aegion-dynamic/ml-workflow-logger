@@ -1,3 +1,4 @@
+import uuid
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, Optional
 
@@ -9,7 +10,6 @@ from ml_workflow_logger.models.flow_model import FlowModel, StepModel
 
 @dataclass
 class Step:
-    flow_name: str
     step_name: str
     step_data: Dict[str, Any]
 
@@ -18,10 +18,10 @@ class Step:
 
 @dataclass
 class Flow:
-    def __init__(self, flow_name: str, flow_data: Dict[str, Any] = {}):
+    def __init__(self, flow_name: str):
         """Initializes the Flow object with flow name, run ID, and optional flow data."""
+        self.flow_id: str = str(uuid.uuid4())
         self.flow_name: str = flow_name
-        self.flow_data: Dict[str, Any] = flow_data
         self.status: Optional[str] = None
         self.steps: Dict[str, Step] = {}
         self.dag = nx.DiGraph()
@@ -32,7 +32,7 @@ class Flow:
             raise ValueError(f"Step '{step_name}' already exists in the flow.")
 
         # Create a Step object and add it to the flow steps dictionary
-        step = Step(flow_name=self.flow_name, step_name=step_name, step_data=step_data)
+        step = Step(step_name=step_name, step_data=step_data)
         self.steps[step_name] = step
         self.dag.add_node(step_name)  # Add step to the DAG
 
@@ -58,7 +58,7 @@ class Flow:
             self.validate()
 
             flow_model = FlowModel(
-                name=self.flow_name, status=self.status  # Ensure status is set somewhere before this call
+                id=self.flow_id, name=self.flow_name, status=self.status  # Ensure status is set somewhere before this call
             )
 
             # Add all steps to the FlowModel
@@ -72,7 +72,6 @@ class Flow:
         """Converts the Flow object to a dictionary."""
         return {
             "flow_name": self.flow_name,
-            "flow_data": self.flow_data,
             "status": self.status,
             "steps": {step_name: step.to_dict() for step_name, step in self.steps.items()},
         }

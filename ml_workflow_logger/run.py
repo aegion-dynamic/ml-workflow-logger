@@ -12,7 +12,7 @@ class Run:
     def __init__(
         self,
         run_id: Optional[str] = None,
-        flow_ref: Optional[FlowModel] = None,
+        flow_ref: Optional[str] = None,
         run_dir: Path = Path("./"),
     ) -> None:
         """Initialize the run with a name, reference to flow, and run directory."""
