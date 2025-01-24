@@ -74,3 +74,14 @@ class Run:
         """Save the current run to MongoDB uing the driver."""
         run_model = self.to_model()
         mongo_driver.save_run(run_model.to_dict())
+
+    def to_dict(self) -> dict:
+        """Convert the current run to a dictionary."""
+        return {
+            "run_id": self.run_id,
+            "run_dir": str(self.run_dir),
+            "metrics": self.metrics,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "status": self.status,
+        }

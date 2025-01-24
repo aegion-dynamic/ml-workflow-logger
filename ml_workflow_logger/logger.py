@@ -272,15 +272,16 @@ class MLWorkFlowLogger:
         Args:
             run_id (str): To track the end of run
         """
-        with self._lock:
-            run = self._runs.get(run_id)
-            if run:
-                run.status = "completed"
-            else:
-                logger.error("Run ID '%s' does not exist.", run_id)
-                raise KeyError(f"Run ID '{run_id}' does not exist.")
-        
-        if not self.local_mode:
+
+        if self.local_mode:
+            with self._lock:
+                run = self._runs.get(run_id)
+                if run:
+                    run.status = "completed"
+                else:
+                    logger.error("Run ID '%s' does not exist.", run_id)
+                    raise KeyError(f"Run ID '{run_id}' does not exist.")
+        else:
             if self.db_driver is None:
                 logger.error("Database driver is not initialized.")
                 raise AttributeError("Database driver is not initialized")

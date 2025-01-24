@@ -67,3 +67,12 @@ class Flow:
             return flow_model
         except ValidationError as e:
             raise ValueError(f"Error converting to FlowModel: {e}")
+        
+    def to_dict(self) -> dict:
+        """Converts the Flow object to a dictionary."""
+        return {
+            "flow_name": self.flow_name,
+            "flow_data": self.flow_data,
+            "status": self.status,
+            "steps": {step_name: step.to_dict() for step_name, step in self.steps.items()},
+        }

@@ -76,7 +76,7 @@ class MongoDBDriver(AbstractDriver):
 
     def _convert_to_dict(self, data: Any) -> Dict[str, Any]:
         """Convert model instances to dictionaries for MongoDB."""
-        return data.dict() if hasattr(data, "dict") else data
+        return data.to_dict() if hasattr(data, "to_dict") else data
 
     def _validate_data(self, data: Dict[str, Any]) -> bool:
         """Basic validation of data before saving to MongoDB.
@@ -156,7 +156,7 @@ class MongoDBDriver(AbstractDriver):
 
         # Save the step data to the stepmodels collection
         collection = self._db["step_models"]
-        data = self._convert_to_dict(step_data)
+        data = step_data
 
         try:
             collection.insert_one(data)
@@ -177,7 +177,7 @@ class MongoDBDriver(AbstractDriver):
         collection = self._db["run_models"]
         data = self._convert_to_dict(run_object)
 
-        if self._validate_data(data):
+        if not self._validate_data(data):
             logger.error("Run data validation failed. Run not saved.")
             raise ValueError("Invalid run data. 'run_id' must be present and non-null.")
 
@@ -256,7 +256,7 @@ class MongoDBDriver(AbstractDriver):
             raise ValueError("'run_id' must be present and non-null in step_data.")
 
         collection = self._db["flowrecord_models"]
-        data = self._convert_to_dict(step_data)
+        data = step_data
 
         try:
             collection.insert_one(data)
