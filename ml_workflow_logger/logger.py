@@ -114,7 +114,6 @@ class MLWorkFlowLogger:
         Args:
             flow_name (str): Name of flow stored in logs
             run_id (str): Run id used to track the flow
-            flow_data (Dict[str, Any], optional): All the flow data to be stored in the logs. Defaults to {}.
         """
 
         flow = Flow(flow_name)
@@ -133,7 +132,7 @@ class MLWorkFlowLogger:
 
         # Save flow locally to CSV (whether in local or global mode)
         try:
-            self.save_dataframe(flow.flow_name, pd.DataFrame(flow_data))
+            self.save_dataframe(flow.flow_name, pd.DataFrame(flow.to_dict(), index=[flow.flow_id]))
         except Exception as e:
             logger.error(f"Failed to log flow '{flow_name}': {e}")
 
@@ -208,6 +207,7 @@ class MLWorkFlowLogger:
             try:
                 self.db_driver.save_new_run(run_data)  # Save to database
                 logger.info("Run ID '%s' logged successfully.", run_id)
+                self.db_driver.update_flow_status(flow_id, "Running")  # Update flow status to running
             except Exception as e:
                 logger.error(f"Failed to log run '{run_id}': {e}")
                 # If using in-memory storage clean up
@@ -273,6 +273,7 @@ class MLWorkFlowLogger:
             try:
                 self.db_driver.save_flow_record(run_id, flow_id, step_name, step_data)  # Save to database
                 logger.info("Flow record for step '%s' logged successfully.", step_name)
+                self.db_driver.update_run_status(run_id, "Running")  # Update run status to running
             except Exception as e:
                 logger.error(f"Failed to log flow record for step '{step_name}': {e}")
 
@@ -315,6 +316,38 @@ class MLWorkFlowLogger:
             self.save_dataframe(run_id, end_run_df)    
         except Exception as e:
             logger.error(f"Failed to end run for run_id '{run_id}' in database: {e}")
+
+    def end_flow(self, flow_id: str) -> None:
+        """Mark the end of a flow.
+
+        Args:
+            flow_id (str): To track the end of flow
+        """
+        
+        if self.local_mode:
+            with self._lock:
+                flow = self._flows.get(flow_id)
+                if flow:
+                    flow.status = "completed"
+                else:
+                    logger.error("Flow ID '%s' does not exist.", flow_id)
+                    raise KeyError(f"Flow ID '{flow_id}' does not exist.")
+        else:
+            if self.db_driver is None:
+                logger.error("Database driver is not initialized.")
+                raise AttributeError("Database driver is not initialized")
+            try:
+                self.db_driver.update_flow_status(flow_id, "Completed")   # Save to database
+                logger.info(f"Flow {flow_id} ended successfully in database.")
+            except Exception as e:
+                logger.error(f"Failed to end flow for flow_id {flow_id}: {e}")
+
+        # Save the final flow status to CSV
+        try:
+            end_flow_df = pd.DataFrame({"flow_id": [flow_id], "status": ["completed"]})
+            self.save_dataframe(flow_id, end_flow_df)    
+        except Exception as e:
+            logger.error(f"Failed to end flow for flow_id '{flow_id}' in database: {e}")
 
     def save_dataframe(self, run_id: str, df: pd.DataFrame) -> None:
         """Save the Dataframe associated with the run.

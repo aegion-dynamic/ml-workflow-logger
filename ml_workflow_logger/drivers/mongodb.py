@@ -345,3 +345,34 @@ class MongoDBDriver(AbstractDriver):
         except Exception as e:
             logger.error(f"Error updating run status for run_id '{run_id}': {e}")
             raise
+
+    def update_flow_status(self, flow_id: str, status: str) -> None:
+        """Update the status of a specific flow.
+
+        Args:
+            flow_id (str): Flow ID to update.
+            status (str): New status (e.g., 'completed').
+        """
+        if not flow_id:
+            logger.error("Invalid flow_id provided for updating flow status: None or empty.")
+            raise ValueError("flow_id must be a valid, non-empty string.")
+
+        if not status:
+            logger.error("Invalid status provided for updating flow status: None or empty.")
+            raise ValueError("status must be a valid, non-empty string.")
+
+        collection = self._db["flow_models"]
+
+        try:
+            result = collection.update_one(
+                {"id": flow_id},
+                {"$set": {"status": status}},
+                upsert=False,  # Do not insert if the document does not exist
+            )
+            if result.matched_count == 0:
+                logger.error("No flow found with flow_id: %s to update status.", flow_id)
+                raise KeyError(f"No flow found with flow_id: {flow_id}")
+            logger.info("Flow status updated to '%s' for flow_id: %s.", status, flow_id)
+        except Exception as e:
+            logger.error(f"Error updating flow status for flow_id '{flow_id}': {e}")
+            raise

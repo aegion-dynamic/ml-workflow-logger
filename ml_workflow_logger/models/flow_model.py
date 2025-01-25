@@ -18,12 +18,19 @@ class FlowModel(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     name: str = ""
     steps: List[StepModel] = []
-    status: Optional[str] = None
+    status: str = Field(default="created")
 
     @field_validator("name")
     def validate_name(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("Flow name cannot be empty")
+        return value
+    
+    @field_validator("status")
+    def validate_status(cls, value: str) -> str:
+        valid_statuses = {"created", "running", "completed", "failed"}
+        if value not in valid_statuses:
+            raise ValueError(f"Invalid status '{value}'. Valid statuses are: {valid_statuses}")
         return value
 
     def add_step(self, step_name: str, step_data: Dict[str, Any] = {}) -> None:

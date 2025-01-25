@@ -22,7 +22,7 @@ class Flow:
         """Initializes the Flow object with flow name, run ID, and optional flow data."""
         self.flow_id: str = str(uuid.uuid4())
         self.flow_name: str = flow_name
-        self.status: Optional[str] = None
+        self.status: str = "created"
         self.steps: Dict[str, Step] = {}
         self.dag = nx.DiGraph()
 
