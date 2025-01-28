@@ -15,7 +15,7 @@ class StepModel(BaseModel):
 
 # Class representing the flow of the ML workflow
 class FlowModel(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    flow_id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     name: str = ""
     steps: List[StepModel] = []
     status: str = Field(default="created")
@@ -48,7 +48,7 @@ class FlowModel(BaseModel):
     def to_dict_with_steps(self) -> Dict[str, Any]:
         """Returns a dictionary representation of the flow, including steps."""
         return {
-            "_id": self.id,
+            "flow_id": self.flow_id,
             "name": self.name,
             "status": self.status,
             "steps": [step.model_dump() for step in self.steps],

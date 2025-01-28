@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict
-from venv import logger
 
 import pandas as pd
 
@@ -56,13 +55,9 @@ class AbstractDriver(ABC):
         """Saves the flow data"""
         raise NotImplementedError("Subclasses must implement this method")
 
-    def add_step(self, flow_id, step_name: str, step_data: Dict[str, Any] = {}) -> None:
-        """Add the step"""
-        raise NotImplementedError("Subclasses must implement this method")
-
     @abstractmethod
-    def save_step(self, step_name, step_data: Dict[str, Any]) -> None:
-        """Saves a step within a flow"""
+    def add_step(self, flow_id: str, step_name: str, step_data: Dict[str, Any] = {}) -> None:
+        """Add the step"""
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
@@ -72,15 +67,25 @@ class AbstractDriver(ABC):
 
     @abstractmethod
     def save_metrics(self, run_id: str, metrics: Dict[str, Any]) -> None:
-        """Saves the metircs for a given run."""
+        """Saves the metrics for a given run."""
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
-    def save_flow_record(self, run_id: str, step_name: str, step_data: Dict[str, Any]) -> None:
+    def save_flow_record(self, run_id: str, flow_id: str, step_name: str, step_data: Dict[str, Any]) -> None:
         """Saves the flow record data."""
         raise NotImplementedError("Subclasses must implement this method")
 
     @abstractmethod
     def save_dataframe(self, run_id: str, df: pd.DataFrame) -> None:
         """Save a pandas DataFrame associated with a specific run."""
-        pass
+        raise NotImplementedError("Subclasses must implement this method")
+
+    @abstractmethod
+    def update_run_status(self, run_id: str, status: str) -> None:
+        """Update the status of a specific run."""
+        raise NotImplementedError("Subclasses must implement this method")
+
+    @abstractmethod
+    def update_flow_status(self, flow_id: str, status: str) -> None:
+        """Update the status of a specific flow."""
+        raise NotImplementedError("Subclasses must implement this method")

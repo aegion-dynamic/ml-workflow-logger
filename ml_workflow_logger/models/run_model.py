@@ -43,7 +43,7 @@ class RunModel(BaseModel):
             raise ValueError("Run name cannot be empty if provided.")
         return name
     
-    @field_validator('flow_ref', pre=True)
+    @field_validator('flow_ref')
     def validate_flow_ref(cls, flow_ref: str) -> str:
         if not flow_ref:
             raise ValueError("Flow reference cannot be empty.")

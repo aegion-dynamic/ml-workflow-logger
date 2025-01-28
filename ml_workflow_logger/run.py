@@ -44,7 +44,7 @@ class Run:
     def end_run(self):
         """Mark the end of the run and set the end time."""
         self.end_time = datetime.now()
-        self._update_status = "completed"
+        self.update_status("completed")
         # Optionally save run state (e.g., save to file or update DB)
 
     def update_status(self, _update_status: str) -> None:
@@ -66,7 +66,7 @@ class Run:
             end_time=self.end_time,
             metrics=self.metrics,
             flow_ref=self.flow_ref,
-            status=self._update_status,
+            status=self.status,
         )
         return run_model
 
@@ -79,6 +79,7 @@ class Run:
         """Convert the current run to a dictionary."""
         return {
             "run_id": self.run_id,
+            "flow_ref": self.flow_ref,
             "run_dir": str(self.run_dir),
             "metrics": self.metrics,
             "start_time": self.start_time,

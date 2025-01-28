@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 import networkx as nx
 from pydantic import ValidationError
 
-from ml_workflow_logger.models.flow_model import FlowModel, StepModel
+from ml_workflow_logger.models.flow_model import FlowModel
 
 
 @dataclass
@@ -58,7 +58,7 @@ class Flow:
             self.validate()
 
             flow_model = FlowModel(
-                id=self.flow_id, name=self.flow_name, status=self.status  # Ensure status is set somewhere before this call
+                flow_id=self.flow_id, name=self.flow_name, status=self.status  # Ensure status is set somewhere before this call
             )
 
             # Add all steps to the FlowModel
@@ -71,7 +71,21 @@ class Flow:
     def to_dict(self) -> dict:
         """Converts the Flow object to a dictionary."""
         return {
+            "flow_id": self.flow_id,
             "flow_name": self.flow_name,
             "status": self.status,
             "steps": {step_name: step.to_dict() for step_name, step in self.steps.items()},
         }
+    
+    def update_status(self, status: str):
+        """Updates the status of the flow."""
+        valid_statuses = {"created", "running", "completed", "failed"}
+        if status not in valid_statuses:
+            raise ValueError(f"Invalid status '{status}'. Valid statuses are: {valid_statuses}")
+        self.status = status
+        print(f"Flow '{self.flow_id}' status updated to '{self.status}'.")
+
+    def end_flow(self):
+        """Marks the end of the flow."""
+        self.update_status("completed")
+        # Optionally save flow state (e.g., save to file or update DB)

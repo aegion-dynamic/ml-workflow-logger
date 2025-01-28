@@ -10,7 +10,6 @@ class FlowRecordModel(BaseModel):
     step_data: Dict[str, Any] = Field(default_factory=dict)  # Default to an empty dict if not provided
     flow_ref: str
     run_ref: str
-    status: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Converts the FlowRecordModel to a dictionary using aliases and excluding None fields."""
@@ -37,13 +36,13 @@ class FlowRecordModel(BaseModel):
             raise ValueError("Step name cannot be empty.")
         return step_name
     
-    @field_validator("flow_ref", pre=True)
+    @field_validator("flow_ref")
     def validate_flow_ref(cls, flow_ref: str) -> str:
         if not flow_ref:
             raise ValueError("Flow reference cannot be empty.")
         return flow_ref
     
-    @field_validator("run_ref", pre=True)
+    @field_validator("run_ref")
     def validate_run_ref(cls, run_ref: str) -> str:
         if not run_ref:
             raise ValueError("Run reference cannot be empty.")
