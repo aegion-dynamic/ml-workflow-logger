@@ -323,9 +323,9 @@ class MongoDBDriver(AbstractDriver):
 
         try:
             collection.insert_one(data)
-            logger.info("Flow record data saved successfully for step '%s' and run_id: %s.", step_name, data["run_id"])
+            logger.info("Flow record data saved successfully for step '%s' and run_ref: %s.", step_name, data["run_ref"])
         except errors.DuplicateKeyError:
-            logger.error("Duplicate flow record detected for step '%s' and run_id: %s.", step_name, data["run_id"])
+            logger.error("Duplicate flow record detected for step '%s' and run_ref: %s.", step_name, data["run_ref"])
             raise
         except Exception as e:
             logger.error(f"Error saving flow record data: {e}")
