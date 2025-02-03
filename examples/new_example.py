@@ -1,6 +1,5 @@
 import logging
 import os
-import uuid
 from typing import Any, Dict
 
 from ml_workflow_logger.drivers.mongodb import MongoDBDriver
@@ -35,18 +34,16 @@ logger = MLWorkFlowLogger(db_driver_config=config)
 
 # Create a flow
 flow1_id = logger.add_new_flow("Flow1")
-print("Flow1 ID:", flow1_id)
 
-# # Add steps to the flow
-# logger.add_new_step(flow1_id, "Step1", {"output": "output1"})
-# logger.add_new_step(flow1_id, "Step2", {"output": "output2"})
-# logger.add_new_step(flow1_id, "Step3", {"output": "output3"})
+# Add steps to the flow
+logger.add_new_step(flow1_id, "Step1", {"output": "output1"})
+logger.add_new_step(flow1_id, "Step2", {"output": "output2"})
+logger.add_new_step(flow1_id, "Step3", {"output": "output3"})
 
 # Create multiple runs in the same process
 for i in range(3):
     # Create a run
-    run_id = str(uuid.uuid4())
-    run_id = logger.start_new_run(run_id, flow1_id)
+    run_id = logger.start_new_run(flow1_id)
 
     # link steps to run and flow
     logger.save_flow_record(flow1_id, run_id, "Step1", {"output": "output1"})

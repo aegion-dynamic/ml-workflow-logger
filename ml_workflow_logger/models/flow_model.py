@@ -9,13 +9,17 @@ class StepModel(BaseModel):
     step_name: str
     step_data: Dict[str, Any] = {}
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Return a dictionary representation of the step."""
+        return self.model_dump(by_alias=True, exclude_none=True)
+
     class Config:
         population_by_name = True
 
 
 # Class representing the flow of the ML workflow
 class FlowModel(BaseModel):
-    flow_id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    flow_id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     name: str = ""
     steps: List[StepModel] = []
     status: str = Field(default="created")

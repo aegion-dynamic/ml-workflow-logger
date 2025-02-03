@@ -8,7 +8,7 @@ from ml_workflow_logger.drivers.abstract_driver import AbstractDriver, DBConfig
 from ml_workflow_logger.flow import Flow, Step
 from ml_workflow_logger.models.flow_record_model import FlowRecordModel
 from ml_workflow_logger.models.run_model import RunModel
-from ml_workflow_logger.models.flow_model import StepModel
+from ml_workflow_logger.models.flow_model import StepModel, FlowModel
 from ml_workflow_logger.run import Run
 
 # Set up logging
@@ -67,12 +67,6 @@ class MongoDBDriver(AbstractDriver):
                     self._db.create_collection(collection)
                     logger.info("Created collection: {collection}")
 
-            # Add index to important fields (e.g., run_id)
-            self._db["run_models"].create_index("run_id", unique=True)
-            logger.info("created index on 'run_id' for 'run_models' collection")
-            self._db["flow_models"].create_index("flow_id", unique=True)
-            logger.info("created index on 'flow_id' for 'flow_models' collection")
-
         except Exception as e:
             logger.error(f"Error initializing MongoDB: {e}")
             raise
@@ -85,61 +79,56 @@ class MongoDBDriver(AbstractDriver):
         """Convert instances to models for MongoDB."""
         return data.to_model() if hasattr(data, "to_model") else data
 
-    def _validate_data(self, data: Dict[str, Any]) -> bool:
-        """Basic validation of data before saving to MongoDB.
-        Ensures that 'run_id' is present and not None.
+    # def _validate_data(self, data: Dict[str, Any]) -> bool:
+    #     """Basic validation of data before saving to MongoDB.
+    #     Ensures that 'run_id' is present and not None.
 
-        Args:
-            data (Dict[str, Any]): Data to validate
+    #     Args:
+    #         data (Dict[str, Any]): Data to validate
 
-        Returns:
-            bool: True if data is valid, False otherwise.
-        """
+    #     Returns:
+    #         bool: True if data is valid, False otherwise.
+    #     """
 
-        if isinstance(data, Flow):
-            data = self._convert_to_dict(data)
-            if "flow_id" not in data or not data["flow_id"]:
-                logger.error("Invalid data: 'flow_id' is missing or None.")
-                return False
-        elif isinstance(data, Run):
-            data = self._convert_to_dict(data)
-            print(data)
-            if "run_id" not in data or not data["run_id"]:
-                logger.error("Invalid data: 'run_id' is missing or None.")
-                return False
-        return True
+    #     if isinstance(data, Flow):
+    #         data = self._convert_to_dict(data)
+    #         if "flow_id" not in data or not data["flow_id"]:
+    #             logger.error("Invalid data: 'flow_id' is missing or None.")
+    #             return False
+    #     elif isinstance(data, Run):
+    #         data = self._convert_to_dict(data)
+    #         print(data)
+    #         if "run_id" not in data or not data["run_id"]:
+    #             logger.error("Invalid data: 'run_id' is missing or None.")
+    #             return False
+    #     return True
     
     def validate_flow_ref(self, flow_ref: str) -> bool:
         collection = self._db["flow_models"]
-        if collection.find_one({"flow_id": flow_ref}):
+        if collection.find_one({"_id": flow_ref}):
             return True
         return False
     
     def validate_run_ref(self, run_ref: str) -> bool:
         collection = self._db["run_models"]
-        if collection.find_one({"run_id": run_ref}):
+        if collection.find_one({"_id": run_ref}):
             return True
         return False
 
-    def save_flow(self, flow_object: Flow) -> None:
+    def save_flow(self, flow_dict: Dict[str, Any]) -> None:
         """Save the flow data to the flowmodels collection
 
         Args:
-            flow_object (Flow): The Flow object to save.
+            flow_dict (Dict[str, Any]): The Flow dictionary to save.
         """
         collection = self._db["flow_models"]
-
-        if not self._validate_data(flow_object):
-            logger.error("Flow data validation failed. Flow not saved.")
-            return
-        
-        data = self._convert_to_dict(flow_object)
-
+        flow_id = flow_dict["_id"]
+        print(flow_dict)
         try:
-            collection.insert_one(flow_object.to_dict())
-            logger.info("Flow data saved successfully for flow_id: %s.", data["flow_id"])
+            collection.insert_one(flow_dict)
+            logger.info("Flow data saved successfully for flow_id: %s.", flow_id)
         except errors.DuplicateKeyError:
-            logger.error("Duplicate run_id '%s' detected while saving flow.", data["flow_id"])
+            logger.error("Duplicate flow_id '%s' detected while saving flow.", flow_id)
             raise
         except Exception as e:
             logger.error(f"Error saving flow data: {e}")
@@ -164,8 +153,8 @@ class MongoDBDriver(AbstractDriver):
         try:
             collection = self._db["flow_models"]
             updated_flow = collection.update_one(
-                {"flow_id": flow_ref},
-                {"$push": {"steps": step.dict()}},
+                {"_id": flow_ref},
+                {"$push": {"steps": step.to_dict()}},
                 upsert=False,  # Do not insert if the document does not exist
             )
 
@@ -213,29 +202,23 @@ class MongoDBDriver(AbstractDriver):
     #         logger.error(f"Error saving the step data: {e}")
     #         raise
 
-    def save_new_run(self, run_object: Run) -> None:
+    def save_new_run(self, run_dict: Dict[str, Any]) -> None:
         """Save the run data to the run_models collection.
 
         Args:
             run_object (Run): The Run object to save.
         """
         collection = self._db["run_models"]
-
-        if not self._validate_data(run_object):
-            logger.error("Run data validation failed. Run not saved.")
-            raise ValueError("Invalid run data. 'run_id' must be present and non-null.")
         
-        data = self._convert_to_dict(run_object)
-        
-        if not self.validate_flow_ref(data["flow_ref"]):
-            logger.error("No flow found with flow_ref: %s to save run.", data["flow_ref"])
+        if not self.validate_flow_ref(run_dict["flow_ref"]):
+            logger.error("No flow found with flow_ref: %s to save run.", run_dict["flow_ref"])
             raise ValueError("No flow found with the given flow_ref.")
 
         try:
-            collection.insert_one(run_object.to_dict())
-            logger.info("Run data saved successfully for run_id: %s.", data["run_id"])
+            collection.insert_one(run_dict)
+            logger.info("Run data saved successfully for run_id: %s.", run_dict["_id"])
         except errors.DuplicateKeyError:
-            logger.error("Duplicate run_id '%s' detected while saving run.", data["run_id"])
+            logger.error("Duplicate run_id '%s' detected while saving run.", run_dict["_id"])
             raise
         except Exception as e:
             logger.error(f"Error saving run_data: {e}")
@@ -257,7 +240,7 @@ class MongoDBDriver(AbstractDriver):
 
         try:
             result = collection.update_one(
-                {"run_id": run_id}, {"$set": {key: data}}, upsert=False  # Do not insert if the document does not exist
+                {"_id": run_id}, {"$set": {key: data}}, upsert=False  # Do not insert if the document does not exist
             )
             if result.matched_count == 0:
                 logger.error("No run found with run_id: %s to update.", run_id)
@@ -280,7 +263,7 @@ class MongoDBDriver(AbstractDriver):
 
         self._update_run_data(run_id, metrics, "metrics")
 
-    def save_flow_record(self, flow_ref: str, run_ref: str, step_name: str, step_data: Dict[str, Any]) -> None:
+    def save_flow_record(self, flow_record_dict: Dict[str, Any]) -> None:
         """Save a flow record associated with a specific run and step.
 
         Args:
@@ -288,25 +271,13 @@ class MongoDBDriver(AbstractDriver):
             step_name (str): Name of the step.
             step_data (Dict[str, Any]): Data related to the step.
         """
-        if not run_ref:
-            logger.error("Invalid run_ref provided for saving flow record: None or empty.")
-            raise ValueError("run_ref must be a valid, non-empty string.")
-        
-        if not flow_ref:
-            logger.error("Invalid flow_ref provided for saving flow record: None or empty.")
-            raise ValueError("flow_ref must be a valid, non-empty string.")
-        
-        if not self.validate_flow_ref(flow_ref):
-            logger.error("No flow found with flow_ref: %s to save flow record.", flow_ref)
+        if not self.validate_flow_ref(flow_record_dict["flow_ref"]):
+            logger.error("No flow found with flow_ref: %s to save flow record.", flow_record_dict["flow_ref"])
             raise ValueError("No flow found with the given flow_ref.")
         
-        if not self.validate_run_ref(run_ref):
-            logger.error("No run found with run_ref: %s to save flow record.", run_ref)
+        if not self.validate_run_ref(flow_record_dict["run_ref"]):
+            logger.error("No run found with run_ref: %s to save flow record.", flow_record_dict["run_ref"])
             raise ValueError("No run found with the given run_ref.")
-
-        if not step_name:
-            logger.error("Invalid step_name provided for saving flow record: None or empty.")
-            raise ValueError("step_name must be a valid, non-empty string.")
 
         # # Ensure that 'run_id' is present in step_data
         # if "run_id" not in step_data or not step_data["run_id"]:
@@ -314,18 +285,12 @@ class MongoDBDriver(AbstractDriver):
         #     raise ValueError("'run_id' must be present and non-null in step_data.")
 
         collection = self._db["flowrecord_models"]
-        data = {
-            "step_name": step_name,
-            "step_data": step_data,
-            "flow_ref": flow_ref,
-            "run_ref": run_ref,
-        }
 
         try:
-            collection.insert_one(data)
-            logger.info("Flow record data saved successfully for step '%s' and run_ref: %s.", step_name, data["run_ref"])
+            collection.insert_one(flow_record_dict)
+            logger.info("Flow record data saved successfully for step '%s' and run_ref: %s.", flow_record_dict["step_name"], flow_record_dict["run_ref"])
         except errors.DuplicateKeyError:
-            logger.error("Duplicate flow record detected for step '%s' and run_ref: %s.", step_name, data["run_ref"])
+            logger.error("Duplicate flow record detected for step '%s' and run_ref: %s.", flow_record_dict["step_name"], flow_record_dict["run_ref"])
             raise
         except Exception as e:
             logger.error(f"Error saving flow record data: {e}")
@@ -378,7 +343,7 @@ class MongoDBDriver(AbstractDriver):
 
         try:
             result = collection.update_one(
-                {"run_id": run_id},
+                {"_id": run_id},
                 {"$set": {"status": status}},
                 upsert=False,  # Do not insert if the document does not exist
             )
@@ -409,7 +374,7 @@ class MongoDBDriver(AbstractDriver):
 
         try:
             result = collection.update_one(
-                {"flow_id": flow_id},
+                {"_id": flow_id},
                 {"$set": {"status": status}},
                 upsert=False,  # Do not insert if the document does not exist
             )
