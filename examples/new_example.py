@@ -52,10 +52,10 @@ for i in range(3):
 
     # Add metrics to the run
     metrics = {"accuracy": 0.95, "loss": 0.05}
-    logger.log_metrics(run_id, metrics)
+    logger.log_metrics(flow1_id, run_id, metrics)
 
     # End the run
-    logger.end_run(run_id)    
+    logger.end_run(flow1_id, run_id)    
 
 # End the flow
 logger.end_flow(flow1_id)

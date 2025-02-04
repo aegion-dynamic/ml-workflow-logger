@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import pandas as pd
 from pymongo import MongoClient, errors
@@ -296,32 +296,43 @@ class MongoDBDriver(AbstractDriver):
             logger.error(f"Error saving flow record data: {e}")
             raise
 
-    def save_dataframe(self, run_id: str, df: pd.DataFrame) -> None:
-        """Save a pandas DataFrame to MongoDB associated with a specific run.
+    def save_dataframe(self, flow_id: str, description: str, df: pd.DataFrame, run_id: Optional[str] = None) -> None:
+        """Save a pandas DataFrame to MongoDB associated with a specific flow and optionally a run.
 
         Args:
-            run_id (str): Run ID associated with the DataFrame.
+            flow_id (str): Flow ID associated with the DataFrame.
+            description (str): Description of the DataFrame.
             df (pd.DataFrame): DataFrame to be saved.
+            run_id (Optional[str]): Run ID associated with the DataFrame (optional).
         """
-        if not run_id:
-            logger.error("Invalid run_id provided for saving DataFrame: None or empty.")
-            raise ValueError("run_id must be a valid, non-empty string.")
+        if not flow_id:
+            logger.error("Invalid flow_id provided for saving DataFrame: None or empty.")
+            raise ValueError("flow_id must be a valid, non-empty string.")
+
+        if not description:
+            logger.error("Invalid description provided for saving DataFrame: None or empty.")
+            raise ValueError("description must be a valid, non-empty string.")
 
         if df.empty:
-            logger.error("Invalid DataFrame. Cannot save an empty DataFrame for run_id: %s.", run_id)
+            logger.error("Invalid DataFrame. Cannot save an empty DataFrame for flow_id: %s.", flow_id)
             raise ValueError("Cannot save an empty DataFrame.")
 
         collection = self._db["dataframes"]
-        data = {"run_id": run_id, "data": df.to_dict(orient="records")}
+        data = {
+            "flow_id": flow_id,
+            "run_id": run_id,
+            "description": description,
+            "data": df.to_dict(orient="records")
+        }
 
         try:
             collection.insert_one(data)
-            logger.info("DataFrame for run_id '%s' saved successfully.", run_id)
+            logger.info("DataFrame for flow_id '%s' and run_id '%s' saved successfully.", flow_id, run_id)
         except errors.DuplicateKeyError:
-            logger.error("Duplicate DataFrame detected for run_id: %s.", run_id)
+            logger.error("Duplicate DataFrame detected for flow_id: %s and run_id: %s.", flow_id, run_id)
             raise
         except Exception as e:
-            logger.error(f"Error saving DataFrame for run_id '{run_id}': {e}")
+            logger.error(f"Error saving DataFrame for flow_id '{flow_id}' and run_id '{run_id}': {e}")
             raise
 
     def update_run_status(self, run_id: str, status: str) -> None:
