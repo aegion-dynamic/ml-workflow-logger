@@ -12,7 +12,7 @@ class Run:
     def __init__(
         self,
         run_id: Optional[str] = None,
-        flow_ref: Optional[FlowModel] = None,
+        flow_ref: Optional[str] = None,
         run_dir: Path = Path("./"),
     ) -> None:
         """Initialize the run with a name, reference to flow, and run directory."""
@@ -35,6 +35,10 @@ class Run:
         self.metrics[key] = value
         self._save_metrics()
 
+    def update_metrics(self, metrics: Dict[str, Any]):
+        """Update the metrics for the run."""
+        self.metrics.update(metrics)
+
     def _save_metrics(self):
         """Save metrics to a JSON file."""
         metrics_path = self.run_dir / "metrics.json"
@@ -44,7 +48,7 @@ class Run:
     def end_run(self):
         """Mark the end of the run and set the end time."""
         self.end_time = datetime.now()
-        self._update_status = "completed"
+        self.update_status("completed")
         # Optionally save run state (e.g., save to file or update DB)
 
     def update_status(self, _update_status: str) -> None:
@@ -66,7 +70,7 @@ class Run:
             end_time=self.end_time,
             metrics=self.metrics,
             flow_ref=self.flow_ref,
-            status=self._update_status,
+            status=self.status,
         )
         return run_model
 
@@ -74,3 +78,15 @@ class Run:
         """Save the current run to MongoDB uing the driver."""
         run_model = self.to_model()
         mongo_driver.save_run(run_model.to_dict())
+
+    def to_dict(self) -> dict:
+        """Convert the current run to a dictionary."""
+        return {
+            "run_id": self.run_id,
+            "flow_ref": self.flow_ref,
+            "run_dir": str(self.run_dir),
+            "metrics": self.metrics,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "status": self.status,
+        }

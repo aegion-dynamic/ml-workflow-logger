@@ -2,8 +2,6 @@ import uuid
 from pydantic import BaseModel, Field, field_validator, ValidationInfo 
 from typing import Dict, Any, Optional
 from datetime import datetime
-from ml_workflow_logger.models.flow_model import FlowModel
-
 
 # Stores the metrics, when it starts, ends, and collects all the step data for a particular run
 class RunModel(BaseModel):
@@ -12,7 +10,7 @@ class RunModel(BaseModel):
     start_time: datetime = Field(default_factory=datetime.now)
     end_time: Optional[datetime] = Field(default=None)
     metrics: Dict[str, Any] = Field(default_factory=dict)
-    flow_ref: Optional[FlowModel] = Field(default=None)
+    flow_ref: str
     status: str = Field(default="created")
 
     @field_validator('end_time', mode='before')
@@ -44,6 +42,12 @@ class RunModel(BaseModel):
         if name is not None and not name.strip():
             raise ValueError("Run name cannot be empty if provided.")
         return name
+    
+    @field_validator('flow_ref')
+    def validate_flow_ref(cls, flow_ref: str) -> str:
+        if not flow_ref:
+            raise ValueError("Flow reference cannot be empty.")
+        return flow_ref
 
     def to_dict(self) -> Dict[str, Any]:
         """Converts the RunModel to a dictionary, using aliases and excluding None fields."""
