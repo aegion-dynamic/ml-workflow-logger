@@ -35,6 +35,10 @@ class Run:
         self.metrics[key] = value
         self._save_metrics()
 
+    def update_metrics(self, metrics: Dict[str, Any]):
+        """Update the metrics for the run."""
+        self.metrics.update(metrics)
+
     def _save_metrics(self):
         """Save metrics to a JSON file."""
         metrics_path = self.run_dir / "metrics.json"

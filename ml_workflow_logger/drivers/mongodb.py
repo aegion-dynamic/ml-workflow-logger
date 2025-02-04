@@ -296,7 +296,7 @@ class MongoDBDriver(AbstractDriver):
             logger.error(f"Error saving flow record data: {e}")
             raise
 
-    def save_dataframe(self, flow_id: str, description: str, df: pd.DataFrame, run_id: Optional[str] = None) -> None:
+    def save_dataframe(self, flow_id: str, description: str, data: Dict[str, Any], run_id: Optional[str] = None) -> None:
         """Save a pandas DataFrame to MongoDB associated with a specific flow and optionally a run.
 
         Args:
@@ -313,20 +313,16 @@ class MongoDBDriver(AbstractDriver):
             logger.error("Invalid description provided for saving DataFrame: None or empty.")
             raise ValueError("description must be a valid, non-empty string.")
 
-        if df.empty:
-            logger.error("Invalid DataFrame. Cannot save an empty DataFrame for flow_id: %s.", flow_id)
-            raise ValueError("Cannot save an empty DataFrame.")
-
         collection = self._db["dataframes"]
-        data = {
+        dataframe = {
             "flow_id": flow_id,
             "run_id": run_id,
             "description": description,
-            "data": df.to_dict(orient="records")
+            "data": data,
         }
 
         try:
-            collection.insert_one(data)
+            collection.insert_one(dataframe)
             logger.info("DataFrame for flow_id '%s' and run_id '%s' saved successfully.", flow_id, run_id)
         except errors.DuplicateKeyError:
             logger.error("Duplicate DataFrame detected for flow_id: %s and run_id: %s.", flow_id, run_id)
