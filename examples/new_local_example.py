@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 from typing import Any, Dict
 from ml_workflow_logger.logger import MLWorkFlowLogger
 
@@ -7,7 +8,7 @@ from ml_workflow_logger.logger import MLWorkFlowLogger
 logging.basicConfig(level=logging.INFO)
 logger_error = logging.getLogger(__name__)
 
-log_dir = "logs"  # You can change this path as needed
+log_dir = Path("./logs")  # You can change this path as needed
 
 # Ensure the log directory exists
 os.makedirs(log_dir, exist_ok=True)
@@ -38,7 +39,7 @@ for i in range(3):
     logger.log_metrics(flow1_id, run_id, metrics)
 
     # End the run
-    logger.end_run(flow1_id, run_id)    
+    logger.end_run(flow1_id, run_id)
 
 # End the flow
 logger.end_flow(flow1_id)
