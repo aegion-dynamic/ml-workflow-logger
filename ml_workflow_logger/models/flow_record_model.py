@@ -3,13 +3,17 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from ml_workflow_logger.models.flow_model import FlowModel
+from ml_workflow_logger.models.run_model import RunModel
+
 
 class FlowRecordModel(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
     step_name: str = ""
-    step_data: Dict[str, Any] = Field(default_factory=dict)  # Default to an empty dict if not provided
-    flow_ref: str
-    run_ref: str
+    # Default to an empty dict if not provided
+    step_data: Dict[str, Any] = Field(default_factory=dict)
+    flow_ref: FlowModel = Field(...)
+    run_ref: RunModel = Field(...)
 
     def to_dict(self) -> Dict[str, Any]:
         """Converts the FlowRecordModel to a dictionary using aliases and excluding None fields."""
@@ -35,13 +39,13 @@ class FlowRecordModel(BaseModel):
         if not step_name.strip():
             raise ValueError("Step name cannot be empty.")
         return step_name
-    
+
     @field_validator("flow_ref")
     def validate_flow_ref(cls, flow_ref: str) -> str:
         if not flow_ref:
             raise ValueError("Flow reference cannot be empty.")
         return flow_ref
-    
+
     @field_validator("run_ref")
     def validate_run_ref(cls, run_ref: str) -> str:
         if not run_ref:

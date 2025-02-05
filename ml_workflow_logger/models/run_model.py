@@ -1,16 +1,20 @@
 import uuid
-from pydantic import BaseModel, Field, field_validator, ValidationInfo 
+from pydantic import BaseModel, Field, field_validator, ValidationInfo
 from typing import Dict, Any, Optional
 from datetime import datetime
 
+from ml_workflow_logger.models.flow_model import FlowModel
+
 # Stores the metrics, when it starts, ends, and collects all the step data for a particular run
+
+
 class RunModel(BaseModel):
     run_id: str = Field(alias='_id', default_factory=lambda: str(uuid.uuid4()))
     name: Optional[str] = Field(default=None)
     start_time: datetime = Field(default_factory=datetime.now)
     end_time: Optional[datetime] = Field(default=None)
     metrics: Dict[str, Any] = Field(default_factory=dict)
-    flow_ref: str
+    flow_ref: FlowModel = Field(...)
     status: str = Field(default="created")
 
     @field_validator('end_time', mode='before')
@@ -18,7 +22,7 @@ class RunModel(BaseModel):
         if end_time and end_time < info.data['start_time']:
             raise ValueError("end_time cannot be earlier than start_time.")
         return end_time
-    
+
     @field_validator('status')
     def validate_status(cls, status: str) -> Any:
         """Ensure that the provided status is valid.
@@ -34,7 +38,8 @@ class RunModel(BaseModel):
         """
         valid_statuses = {"created", "running", "completed", "failed"}
         if status not in valid_statuses:
-            raise ValueError(f"Invalid status '{status}'. Valid statuses are: {valid_statuses}")
+            raise ValueError(
+                f"Invalid status '{status}'. Valid statuses are: {valid_statuses}")
         return status
 
     @field_validator('name', mode='before')
@@ -42,7 +47,7 @@ class RunModel(BaseModel):
         if name is not None and not name.strip():
             raise ValueError("Run name cannot be empty if provided.")
         return name
-    
+
     @field_validator('flow_ref')
     def validate_flow_ref(cls, flow_ref: str) -> str:
         if not flow_ref:

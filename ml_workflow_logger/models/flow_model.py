@@ -19,7 +19,8 @@ class StepModel(BaseModel):
 
 # Class representing the flow of the ML workflow
 class FlowModel(BaseModel):
-    flow_id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), alias="_id")
+    flow_id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()), alias="_id")
     name: str = ""
     steps: List[StepModel] = []
     status: str = Field(default="created")
@@ -29,12 +30,13 @@ class FlowModel(BaseModel):
         if not value.strip():
             raise ValueError("Flow name cannot be empty")
         return value
-    
+
     @field_validator("status")
     def validate_status(cls, value: str) -> str:
         valid_statuses = {"created", "running", "completed", "failed"}
         if value not in valid_statuses:
-            raise ValueError(f"Invalid status '{value}'. Valid statuses are: {valid_statuses}")
+            raise ValueError(
+                f"Invalid status '{value}'. Valid statuses are: {valid_statuses}")
         return value
 
     def add_step(self, step_name: str, step_data: Dict[str, Any] = {}) -> None:
