@@ -8,8 +8,7 @@ def algorithm1(param1: float, param2: float, logger_instance) -> float:
 
     # Step Start
 
-    logger_instance.save_flow_record(
-        "run1", "step_start", {"param1": param1, "param2": param2})
+    logger_instance.save_flow_record("run1", "step_start", {"param1": param1, "param2": param2})
 
     # Step 1
 
@@ -39,8 +38,7 @@ def algorithm1(param1: float, param2: float, logger_instance) -> float:
 
     result = result4
 
-    logger_instance.save_flow_record(
-        "run1", "step_end", {"final_result": result})
+    logger_instance.save_flow_record("run1", "step_end", {"final_result": result})
 
     return result
 

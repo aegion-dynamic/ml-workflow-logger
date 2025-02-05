@@ -55,7 +55,7 @@ for i in range(3):
     logger.log_metrics(flow1_id, run_id, metrics)
 
     # End the run
-    logger.end_run(flow1_id, run_id)    
+    logger.end_run(flow1_id, run_id)
 
 # End the flow
 logger.end_flow(flow1_id)
