@@ -4,10 +4,6 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 
-from ml_workflow_logger.models.flow_model import FlowModel
-from ml_workflow_logger.models.run_model import RunModel
-
-
 class Run:
     def __init__(
         self,
@@ -15,7 +11,13 @@ class Run:
         flow_ref: Optional[str] = None,
         run_dir: Path = Path("./"),
     ) -> None:
-        """Initialize the run with a name, reference to flow, and run directory."""
+        """Initialize the run with a name, reference to flow, and run directory.
+
+        Args:
+            run_id (Optional[str], optional): ID of the run. Defaults to None (generates a new UUID).
+            flow_ref (Optional[str], optional): Some kind of string reference of the flow. Defaults to None.
+            run_dir (Path, optional): Path where we save the run information. Defaults to Path("./").
+        """
         self.run_id = run_id or datetime.now().strftime("%Y%m%d-%H%M%S")
         self.run_dir = run_dir
         self.metrics: Dict[str, Any] = {}
@@ -59,25 +61,10 @@ class Run:
         """
         valid_statuses = {"created", "running", "completed", "failed"}
         if _update_status not in valid_statuses:
-            raise ValueError(f"Invalid status '{_update_status}'. Valid statuses are: {valid_statuses}")
+            raise ValueError(
+                f"Invalid status '{_update_status}'. Valid statuses are: {valid_statuses}")
         self.status = _update_status
         print(f"Run '{self.run_id}' status updated to '{self.status}'.")
-
-    def to_model(self) -> RunModel:
-        """Convert the current run to a RunModel."""
-        run_model = RunModel(
-            start_time=self.start_time,
-            end_time=self.end_time,
-            metrics=self.metrics,
-            flow_ref=self.flow_ref,
-            status=self.status,
-        )
-        return run_model
-
-    def save_to_mongo(self, mongo_driver):
-        """Save the current run to MongoDB uing the driver."""
-        run_model = self.to_model()
-        mongo_driver.save_run(run_model.to_dict())
 
     def to_dict(self) -> dict:
         """Convert the current run to a dictionary."""
