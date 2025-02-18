@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict
 from ml_workflow_logger.logger import MLWorkFlowLogger
+import pandas as pd
 
 # Set up Python's built-in logging for error handling
 logging.basicConfig(level=logging.INFO)
@@ -16,13 +17,20 @@ os.makedirs(log_dir, exist_ok=True)
 # Create the logger instance for local mode
 logger = MLWorkFlowLogger(log_dir=log_dir)
 
-# Create a flow
-flow1_id = logger.add_new_flow("Flow1")
+# Create a flow definition
+flow1_id = logger.start_new_flow_definition("Flow1")
 
 # Add steps to the flow
 logger.add_new_step(flow1_id, "Step1", {"output": "output1"})
 logger.add_new_step(flow1_id, "Step2", {"output": "output2"})
 logger.add_new_step(flow1_id, "Step3", {"output": "output3"})
+
+logger.add_transition(flow_name=flow1_id, source="Step1", target="Step2")
+logger.add_transition(flow_name=flow1_id, source="Step2", target="Step3")
+
+# End the flow definition
+logger.end_flow_definition(flow1_id)
+
 
 # Create multiple runs in the same process
 for i in range(3):
@@ -41,5 +49,4 @@ for i in range(3):
     # End the run
     logger.end_run(flow1_id, run_id)
 
-# End the flow
-logger.end_flow(flow1_id)
+# TODO: Figure out how to save the final flow

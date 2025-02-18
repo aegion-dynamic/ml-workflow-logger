@@ -31,7 +31,7 @@ class MLWorkFlowLogger:
                     cls._instance = super(MLWorkFlowLogger, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, log_dir: Path = Path('logs'), db_driver_config: Optional[DBConfig] = None, **kwargs):
+    def __init__(self, log_dir: Path = Path("logs"), db_driver_config: Optional[DBConfig] = None, **kwargs):
         """Initialize the ML workflow Logger.
 
         Notes:
@@ -50,7 +50,9 @@ class MLWorkFlowLogger:
                     self.db_driver_config = db_driver_config
                     self.db_driver = self._setup_driver(db_driver_config)
                     self.local_mode = False
-                    logger.info("Transitioned MLWorkFLowLogger to global mode with driver: %s", type(self.db_driver).__name__)
+                    logger.info(
+                        "Transitioned MLWorkFLowLogger to global mode with driver: %s", type(self.db_driver).__name__
+                    )
                 return
 
             # Ensure log_dir is a Path object
@@ -72,12 +74,11 @@ class MLWorkFlowLogger:
             self._runs: Dict[str, Run] = {}
             self._flows: Dict[str, Flow] = {}
 
-
             if not self.local_mode:
                 # Initialize Database
-                self.db_driver= self._setup_driver(db_driver_config)
-            self._initialized = True
-            logger.info("MLWorkflowLogger initialized with driver: %s", type(self.db_driver).__name__)
+                self.db_driver = self._setup_driver(db_driver_config)
+                self._initialized = True
+                logger.info("MLWorkflowLogger initialized with driver: %s", type(self.db_driver).__name__)
 
         # if not self._initialized:
 
@@ -95,13 +96,11 @@ class MLWorkFlowLogger:
         #         self._is_local_mode = False
         #         self.db_driver = self._setup_driver(db_driver_config)
 
-
         #     for key, value in kwargs.items():
         #         setattr(self, key, value)
 
         #     self._initialized = True
         #     logger.info("MLWorkflowLogger initialized with driver: %s", type(self.db_driver).__name__)
-
 
     def _setup_driver(self, db_config) -> MongoDBDriver:
         """Setup default MongoDB driver if no driver is provided.
@@ -112,61 +111,53 @@ class MLWorkFlowLogger:
         # TODO: In the future, we can add support for other database drivers
         return MongoDBDriver(db_config)
 
-    def add_new_flow(self, flow_name: str) -> str:
+    def start_new_flow_definition(self, flow_name: str) -> str:
         """Log flow object, pass to driver for model conversion.
 
         Args:
             flow_name (str): Name of flow stored in logs
         """
-        if self.local_mode:
-            flow = Flow(flow_name)
-            flow_dict = flow.to_dict()
-            self._flows[flow_dict['flow_id']] = flow  # Save locally in memory
-            df = pd.DataFrame({'flow_id': [flow_dict['flow_id']], 'flow_status': [flow_dict['status']],"run_id": ["------"], "run_status": ["------"], 'description': [f"New flow is created with flow id {flow_dict['flow_id']}"]})
-            try:
-                self.save_dataframe(flow_dict['flow_id'], df)
-            except Exception as e:
-                logger.error(f"Failed to save the datagram for flow '{flow_dict['flow_id']}': {e}")
-            return flow_dict['flow_id']
-        else:
-            flow = FlowModel(name=flow_name)
-            flow_dict = flow.to_dict()
-            if self.db_driver is None:
-                logger.error("Database driver is not initialized.")
-                raise AttributeError("Database driver is not initialized.")
-            try:
-                self.db_driver.save_flow(flow_dict)  # Save to database
-                self.db_driver.save_dataframe(flow_dict["_id"], f"New flow is created with flow id {flow_dict['_id']}", flow_dict)
-                logger.info("Flow logged successfully.")  
-            except Exception as e:
-                logger.error(f"Failed to log flow: {e}")
-            return flow_dict["_id"]
+        # Create the flow reference object
+        flow = Flow(flow_name)
 
-    def add_new_step(self, flow_id: str, step_name: str, step_data: Dict[str, Any] = {}) -> None:
+        # Note: don't save anything to the logger at this stage because when we save the flow to
+        # the databse, it will need to reconcile the flow with the steps at a global level.
+
+        # This will be used by the working memory as the reference to the flow
+        self._flows[flow.flow_name] = flow
+
+        return flow.flow_name
+
+    def add_new_step(self, flow_name: str, step_name: str, step_data: Dict[str, Any] = {}) -> None:
         """Add a new step to the flow.
 
         Args:
-            flow_id (str): ID of the flow to which the step belongs.
+            flow_id (str): Name of the flow to which the step belongs.
             step_name (str): Name of the step.
             step_data (Dict[str, Any], optional): Data related to the step. Defaults to {}.
         """
-        if self.local_mode:
-            self._flows[flow_id].add_step(step_name, step_data)
-            try:
-                step_df = pd.DataFrame({"flow_id": [flow_id], "flow_status": ["created"], "run_id": ["------"], "run_status": ["------"], "description": [f"New step '{step_name}' is added to the flow with flow id {flow_id}"]})
-                self.save_dataframe(flow_id, step_df)
-            except Exception as e:
-                logger.error(f"Failed to save step '{step_name}' to CSV: {e}")
-        else:
-            if self.db_driver is None:
-                logger.error("Database driver is not initialized.")
-                raise AttributeError("Database driver is not initialized.")
-            try:
-                self.db_driver.add_step(flow_id, step_name, step_data)  # Save to database
-                self.db_driver.save_dataframe(flow_id, f"New step is added to the flow with flow id {flow_id}", {'step_name': step_name, 'step_data': step_data})
-                logger.info("Step '%s' logged successfully.", step_name)
-            except Exception as e:
-                logger.error(f"Failed to log step: '{step_name}' under Flow '{flow_id}': {e}")
+
+        # Just add the step to the flow object in memory
+        flow = self._flows.get(flow_name)
+        if flow is None:
+            logger.error("Flow ID '%s' does not exist.", flow_name)
+            raise KeyError(f"Flow ID '{flow_name}' does not exist.")
+
+        flow.add_step(step_name, step_data)
+
+    def add_transition(self, flow_name: str, source: str, target: str) -> None:
+        """Add a transition between two steps in the flow.
+
+        Args:
+            flow_id (str): Name of the flow to which the steps belong.
+            source (str): Name of the source step.
+            target (str): Name of the target step.
+        """
+        flow = self._flows.get(flow_name)
+        if flow is None:
+            logger.error("Flow ID '%s' does not exist.", flow_name)
+            raise KeyError(f"Flow ID '{flow_name}' does not exist.")
+        flow.add_transition(source, target)
 
     def start_new_run(self, flow_id: str) -> str:
         """Start a new run for a given flow.
@@ -188,8 +179,18 @@ class MLWorkFlowLogger:
                 self._runs[run_dict["run_id"]] = run  # Save locally in memory
                 flow.update_status("running")
                 try:
-                    run_df = pd.DataFrame({"flow_id": [flow_id], "flow_status": ["running"], "run_id": [run_dict["run_id"]], "run_status": ["created"], "description": [f"New run is started with run id {run_dict['run_id']} to the flow with flow id {flow_id}"]})
-                    self.save_dataframe(flow_id, run_df)
+                    run_df = pd.DataFrame(
+                        {
+                            "flow_id": [flow_id],
+                            "flow_status": ["running"],
+                            "run_id": [run_dict["run_id"]],
+                            "run_status": ["created"],
+                            "description": [
+                                f"New run is started with run id {run_dict['run_id']} to the flow with flow id {flow_id}"
+                            ],
+                        }
+                    )
+                    self.__save_dataframe(flow_id, run_df)
                 except Exception as e:
                     logger.error(f"Failed to save run {run_dict['run_id']} to CSV: {e}")
                 return run_dict["run_id"]
@@ -202,7 +203,12 @@ class MLWorkFlowLogger:
                 raise AttributeError("Database driver is not initialized.")
             try:
                 self.db_driver.save_new_run(run_dict)  # Save to database
-                self.db_driver.save_dataframe(flow_id, f"New run is started with run id {run_id} to the flow with flow id {flow_id}", run_dict, run_id)
+                self.db_driver.save_dataframe(
+                    flow_id,
+                    f"New run is started with run id {run_id} to the flow with flow id {flow_id}",
+                    run_dict,
+                    run_id,
+                )
                 logger.info("Run ID '%s' logged successfully.", run_id)
             except Exception as e:
                 logger.error(f"Failed to log run: '{run_id}' under Flow '{flow_id}': {e}")
@@ -222,8 +228,16 @@ class MLWorkFlowLogger:
                 raise KeyError(f"Run ID '{run_id}' does not exist.")
             run.update_metrics(metrics)
             try:
-                metrics_df = pd.DataFrame({"flow_id": [flow_id], "flow_status": ["running"], "run_id": [run_id], "run_status": ["running"], "description": [f"Metrics of run with run id {run_id} updated"]})
-                self.save_dataframe(flow_id, metrics_df)
+                metrics_df = pd.DataFrame(
+                    {
+                        "flow_id": [flow_id],
+                        "flow_status": ["running"],
+                        "run_id": [run_id],
+                        "run_status": ["running"],
+                        "description": [f"Metrics of run with run id {run_id} updated"],
+                    }
+                )
+                self.__save_dataframe(flow_id, metrics_df)
             except Exception as e:
                 logger.error(f"Failed to save metrics for run_id '{run_id}': {e}")
         else:
@@ -239,7 +253,7 @@ class MLWorkFlowLogger:
 
     def save_flow_record(self, flow_id: str, run_id: str, step_name: str, step_data: Dict[str, Any] = {}) -> None:
         """Save the flow record for a particular step."""
-        
+
         if self.local_mode:
             logger.error("Flow record logging is not yet supported in local mode.")
         else:
@@ -251,8 +265,14 @@ class MLWorkFlowLogger:
             try:
                 self.db_driver.save_flow_record(flow_record_dict)  # Save to database
                 logger.info("Flow record for step '%s' logged successfully.", step_name)
-                self.db_driver.update_run_status(run_id, "Running")  # Update run status to running
-                self.db_driver.save_dataframe(flow_id, f"Step with step name {step_name} of the flow with flow id {flow_id} at run with run id {run_id}", flow_record_dict, run_id)
+                # Update run status to running
+                self.db_driver.update_run_status(run_id, "Running")
+                self.db_driver.save_dataframe(
+                    flow_id,
+                    f"Step with step name {step_name} of the flow with flow id {flow_id} at run with run id {run_id}",
+                    flow_record_dict,
+                    run_id,
+                )
             except Exception as e:
                 logger.error(f"Failed to log flow record for step '{step_name}': {e}")
 
@@ -269,8 +289,16 @@ class MLWorkFlowLogger:
                 raise KeyError(f"Run ID '{run_id}' does not exist.")
             run.update_status("completed")
             try:
-                end_run_df = pd.DataFrame({"flow_id": [flow_id], "flow_status": ["running"], "run_id": [run_id], "run_status": ["completed"], "description": [f"Run is completed with run id {run_id} for the flow with flow id {flow_id}"]})
-                self.save_dataframe(flow_id, end_run_df)
+                end_run_df = pd.DataFrame(
+                    {
+                        "flow_id": [flow_id],
+                        "flow_status": ["running"],
+                        "run_id": [run_id],
+                        "run_status": ["completed"],
+                        "description": [f"Run is completed with run id {run_id} for the flow with flow id {flow_id}"],
+                    }
+                )
+                self.__save_dataframe(flow_id, end_run_df)
             except Exception as e:
                 logger.error(f"Failed to save run '{run_id}' to CSV: {e}")
         else:
@@ -278,55 +306,58 @@ class MLWorkFlowLogger:
                 logger.error("Database driver is not initialized.")
                 raise AttributeError("Database driver is not initialized.")
             try:
-                self.db_driver.update_run_status(run_id, "completed")  # Update run status to completed
-                self.db_driver.save_dataframe(flow_id, f"Run is completed with run id {run_id} for the flow with flow id {flow_id}", {"run_id": [run_id], "status": ["completed"]}, run_id)
+                # Update run status to completed
+                self.db_driver.update_run_status(run_id, "completed")
+                self.db_driver.save_dataframe(
+                    flow_id,
+                    f"Run is completed with run id {run_id} for the flow with flow id {flow_id}",
+                    {"run_id": [run_id], "status": ["completed"]},
+                    run_id,
+                )
                 logger.info("Run ID '%s' marked as completed.", run_id)
             except Exception as e:
                 logger.error(f"Failed to update run status for run_id '{run_id}': {e}")
 
-
-    def end_flow(self, flow_id: str) -> None:
-        """Mark the end of the flow and set the end time.
+    def end_flow_definition(self, flow_name: str) -> None:
+        """Mark the end of the flow definition and save it to the cloud if running in cloud mode.
 
         Args:
-            flow_id (str): ID of the flow to end.
+            flow_name (str): Name of the flow to end.
         """
         if self.local_mode:
-            flow = self._flows.get(flow_id)
+            flow = self._flows.get(flow_name)
             if flow is None:
-                logger.error("Flow ID '%s' does not exist.", flow_id)
-                raise KeyError(f"Flow ID '{flow_id}' does not exist.")
-            flow.update_status("completed")
-            try:
-                end_flow_df = pd.DataFrame({"flow_id": [flow_id], "flow_status": ["completed"], "run_id": ["------"], "run_status": ["------"], "description": [f"Flow is completed with flow id {flow_id}"]})
-                self.save_dataframe(flow_id, end_flow_df)
-            except Exception as e:
-                logger.error(f"Failed to save flow '{flow_id}' to CSV: {e}")
+                logger.error("Flow ID '%s' does not exist.", flow_name)
+                raise KeyError(f"Flow ID '{flow_name}' does not exist.")
+
+            # Lock the flow object to prevent any further changes
+            flow.lock_flow()
+            logger.info("Flow definition for flow '%s' ended.", flow_name)
+            # TODO: Figure if we need to save this information anywhere or do something with it
+
         else:
             if self.db_driver is None:
                 logger.error("Database driver is not initialized.")
                 raise AttributeError("Database driver is not initialized.")
             try:
-                self.db_driver.update_flow_status(flow_id, "completed")  # Update flow status to completed
-                self.db_driver.save_dataframe(flow_id, f"Flow is completed with flow id {flow_id}", {"flow_id": [flow_id], "status": ["completed"]})
-                logger.info("Flow ID '%s' marked as completed.", flow_id)
-            except Exception as e:
-                logger.error(f"Failed to update flow status for flow_id '{flow_id}': {e}")
+                raise NotImplementedError("End flow definition is not yet supported in cloud mode.")
 
-    def save_dataframe(self, flow_id: str, df: pd.DataFrame) -> None:
+            except Exception as e:
+                logger.error(f"Failed to update flow status for flow_id '{flow_name}': {e}")
+
+    def __save_dataframe(self, flow_id: str, df: pd.DataFrame) -> None:
         """Save the Dataframe associated with the run.
 
         Args:
             run_id (str): Run_id recorded of current run.
-            df (pd.DataFrame): Saves all the logged data in dataframe.
+            df (pd.DataFrame): Dataframe onto which we need to save all the data.
         """
         try:
             file_path = Path(self.log_dir) / f"{flow_id}_data.csv"
             if file_path.exists():
-                df.to_csv(file_path, mode='a', header=False, index=False)
+                df.to_csv(file_path, mode="a", header=False, index=False)
             else:
-                df.to_csv(file_path, mode='w', header=True, index=False)           
+                df.to_csv(file_path, mode="w", header=True, index=False)
             logger.info(f"Dataframe for flow {flow_id} saved successfully to {file_path}.")
         except Exception as e:
             logger.error(f"Failed to save DataFrame for flow {flow_id}: {e}")
-
